@@ -3,7 +3,7 @@ class Field {
   final int? id;
   final int fieldSetId;
   final String name;
-  final String type;
+  final String type; // 例: 'text', 'number' など
 
   Field({
     this.id,
@@ -12,38 +12,16 @@ class Field {
     required this.type,
   });
 
-  Field copyWith({
-    int? id,
-    int? fieldSetId,
-    String? name,
-    String? type,
-  }) {
-    return Field(
-      id: id ?? this.id,
-      fieldSetId: fieldSetId ?? this.fieldSetId,
-      name: name ?? this.name,
-      type: type ?? this.type,
-    );
-  }
-
   factory Field.fromMap(Map<String, dynamic> map) {
     return Field(
-      id: map['id'],
-      fieldSetId: map['fieldSetId'],
-      name: map['name'],
-      type: map['type'],
+      id: map['id'] as int?,
+      fieldSetId: map['fieldSetId'] as int,
+      name: map['name'] as String,
+      type: map['type'] as String,
     );
   }
 
   Map<String, dynamic> toMap() {
-    final map = <String, dynamic>{
-      'fieldSetId': fieldSetId,
-      'name': name,
-      'type': type,
-    };
-    if (id != null) {
-      map['id'] = id;
-    }
-    return map;
+    return {'id': id, 'fieldSetId': fieldSetId, 'name': name, 'type': type};
   }
 }

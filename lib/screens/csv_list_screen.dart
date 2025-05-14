@@ -1,56 +1,71 @@
 // screens/csv_list_screen.dart
 import 'package:flutter/material.dart';
-import '../models/field.dart';
 
 class CsvListScreen extends StatelessWidget {
-  final List<Field> fields;
-  final List<List<String>> entries; // 仮データ構造（後でDB連携）
+  final String setName;
+  final List<Map<String, dynamic>> entries; // サンプルデータ
 
-  CsvListScreen({required this.fields, required this.entries});
+  const CsvListScreen({Key? key, required this.setName, required this.entries})
+    : super(key: key);
 
   void _exportCsv(BuildContext context) {
-    // TODO: CSV生成・共有処理を実装
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("CSVを出力しました（仮）")),
+    // TODO: CSVエクスポート処理を実装
+    showDialog(
+      context: context,
+      builder:
+          (context) => SimpleDialog(
+            title: Text('共有方法を選択'),
+            children: [
+              SimpleDialogOption(
+                child: Text('メールで送信'),
+                onPressed: () {
+                  // TODO: メール送信処理
+                  Navigator.pop(context);
+                },
+              ),
+              SimpleDialogOption(
+                child: Text('LINEで送信'),
+                onPressed: () {
+                  // TODO: LINE送信処理
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("入力一覧 & CSV出力"),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.download),
-            onPressed: () => _exportCsv(context),
-            tooltip: "CSV出力",
-          ),
-        ],
-      ),
-      body: ListView.builder(
-        itemCount: entries.length,
-        itemBuilder: (context, index) {
-          final row = entries[index];
-          return Card(
-            margin: EdgeInsets.all(8),
-            child: ListTile(
-              title: Text(row.join(', ')),
-              trailing: IconButton(
-                icon: Icon(Icons.delete),
-                onPressed: () {
-                  // TODO: 削除処理を実装
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("削除しました（仮）")),
-                  );
-                },
-              ),
-              onTap: () {
-                // TODO: 編集画面へ遷移
+      appBar: AppBar(title: Text('データ一覧（$setName）')),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.separated(
+              itemCount: entries.length,
+              separatorBuilder: (_, __) => Divider(),
+              itemBuilder: (context, index) {
+                final entry = entries[index];
+                final createdAt = entry['createdAt'] ?? '';
+                final values = entry['values'] as Map<String, dynamic>? ?? {};
+                return ListTile(
+                  title: Text('[$createdAt]'),
+                  subtitle: Text(
+                    values.entries.map((e) => '${e.key}:${e.value}').join('  '),
+                  ),
+                );
               },
             ),
-          );
-        },
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ElevatedButton(
+              onPressed: () => _exportCsv(context),
+              child: Text('CSVエクスポート'),
+            ),
+          ),
+        ],
       ),
     );
   }

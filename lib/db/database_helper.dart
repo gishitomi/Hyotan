@@ -4,6 +4,7 @@ import 'package:path/path.dart';
 import '../models/field_set.dart';
 import '../models/field.dart';
 import '../models/entry.dart';
+import 'dart:convert';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._internal();
@@ -11,18 +12,15 @@ class DatabaseHelper {
 
   DatabaseHelper._internal();
 
-  Future<void> init() async {
-    _database = await _initDatabase();
-  }
-
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDatabase();
+    _database = await _initDb();
     return _database!;
   }
 
-  Future<Database> _initDatabase() async {
-    final path = join(await getDatabasesPath(), 'csv_data_app.db');
+  Future<Database> _initDb() async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, 'csv_app.db');
     return await openDatabase(path, version: 1, onCreate: _onCreate);
   }
 
@@ -33,27 +31,27 @@ class DatabaseHelper {
         name TEXT NOT NULL
       )
     ''');
-
     await db.execute('''
       CREATE TABLE fields (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        field_set_id INTEGER NOT NULL,
+        fieldSetId INTEGER NOT NULL,
         name TEXT NOT NULL,
-        FOREIGN KEY (field_set_id) REFERENCES field_sets (id) ON DELETE CASCADE
+        type TEXT NOT NULL,
+        FOREIGN KEY(fieldSetId) REFERENCES field_sets(id) ON DELETE CASCADE
       )
     ''');
-
     await db.execute('''
       CREATE TABLE entries (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        field_set_id INTEGER NOT NULL,
-        data TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        FOREIGN KEY (field_set_id) REFERENCES field_sets (id) ON DELETE CASCADE
+        fieldSetId INTEGER NOT NULL,
+        values TEXT NOT NULL,
+        createdAt TEXT NOT NULL,
+        FOREIGN KEY(fieldSetId) REFERENCES field_sets(id) ON DELETE CASCADE
       )
     ''');
   }
 
+  // FieldSet CRUD
   Future<int> insertFieldSet(FieldSet fieldSet) async {
     final db = await database;
     return await db.insert('field_sets', fieldSet.toMap());
@@ -62,9 +60,25 @@ class DatabaseHelper {
   Future<List<FieldSet>> getFieldSets() async {
     final db = await database;
     final maps = await db.query('field_sets');
-    return maps.map((map) => FieldSet.fromMap(map)).toList();
+    return maps.map((m) => FieldSet.fromMap(m)).toList();
   }
 
+  Future<int> updateFieldSet(FieldSet fieldSet) async {
+    final db = await database;
+    return await db.update(
+      'field_sets',
+      fieldSet.toMap(),
+      where: 'id = ?',
+      whereArgs: [fieldSet.id],
+    );
+  }
+
+  Future<int> deleteFieldSet(int id) async {
+    final db = await database;
+    return await db.delete('field_sets', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Field CRUD
   Future<int> insertField(Field field) async {
     final db = await database;
     return await db.insert('fields', field.toMap());
@@ -74,25 +88,10 @@ class DatabaseHelper {
     final db = await database;
     final maps = await db.query(
       'fields',
-      where: 'field_set_id = ?',
+      where: 'fieldSetId = ?',
       whereArgs: [fieldSetId],
     );
-    return maps.map((map) => Field.fromMap(map)).toList();
-  }
-
-  Future<int> insertEntry(Entry entry) async {
-    final db = await database;
-    return await db.insert('entries', entry.toMap());
-  }
-
-  Future<List<Entry>> getEntries(int fieldSetId) async {
-    final db = await database;
-    final maps = await db.query(
-      'entries',
-      where: 'field_set_id = ?',
-      whereArgs: [fieldSetId],
-    );
-    return maps.map((map) => Entry.fromMap(map)).toList();
+    return maps.map((m) => Field.fromMap(m)).toList();
   }
 
   Future<int> updateField(Field field) async {
@@ -105,49 +104,35 @@ class DatabaseHelper {
     );
   }
 
-  Future<int> updateEntry(Entry entry) async {
-    final db = await database;
-    return await db.update(
-      'entries',
-      entry.toMap(),
-      where: 'id = ?',
-      whereArgs: [entry.id],
-    );
-  }
-
-  Future<int> deleteEntry(int id) async {
-    final db = await database;
-    return await db.delete('entries', where: 'id = ?', whereArgs: [id]);
-  }
-
-  Future<void> deleteFieldSet(int id) async {
-    final db = await database;
-    await db.delete('field_sets', where: 'id = ?', whereArgs: [id]);
-  }
-
   Future<int> deleteField(int id) async {
     final db = await database;
     return await db.delete('fields', where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<List<Field>> fetchFieldsBySetId(int fieldSetId) async {
+  // Entry CRUD
+  Future<int> insertEntry(Entry entry) async {
     final db = await database;
-    final maps = await db.query(
-      'fields',
-      where: 'field_set_id = ?',
-      whereArgs: [fieldSetId],
-    );
-    return maps.map((map) => Field.fromMap(map)).toList();
+    final map = entry.toMap();
+    map['values'] = jsonEncode(entry.values); // JSON文字列で保存
+    return await db.insert('entries', map);
   }
 
-  Future<List<Entry>> fetchEntriesBySetId(int setId) async {
+  Future<List<Entry>> getEntries(int fieldSetId) async {
     final db = await database;
     final maps = await db.query(
-      'data_entries',
-      where: 'field_set_id = ?',
-      whereArgs: [setId],
+      'entries',
+      where: 'fieldSetId = ?',
+      whereArgs: [fieldSetId],
+      orderBy: 'createdAt DESC',
     );
+    return maps.map((m) {
+      m['values'] = jsonDecode(m['values'] as String);
+      return Entry.fromMap(m);
+    }).toList();
+  }
 
-    return maps.map((map) => Entry.fromMap(map)).toList();
+  Future<int> deleteEntry(int id) async {
+    final db = await database;
+    return await db.delete('entries', where: 'id = ?', whereArgs: [id]);
   }
 }

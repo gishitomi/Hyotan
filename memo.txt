@@ -1,0 +1,20 @@
+your_app/
+├── lib/
+│   ├── main.dart
+│   ├── models/
+│   │   ├── field_set.dart
+│   │   ├── field.dart
+│   │   └── entry.dart
+│   ├── screens/
+│   │   ├── home_screen.dart
+│   │   ├── csv_entry_screen.dart
+│   │   ├── csv_list_screen.dart
+│   │   └── field_edit_screen.dart
+│   ├── db/
+│   │   └── database_helper.dart
+│   ├── providers/
+│   │   └── field_set_provider.dart
+│   └── utils/
+│       └── csv_exporter.dart
+├── pubspec.yaml
+└── ...（その他Flutter標準ファイル）

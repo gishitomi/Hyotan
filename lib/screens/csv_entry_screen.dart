@@ -1,24 +1,25 @@
 // screens/csv_entry_screen.dart
 import 'package:flutter/material.dart';
-import '../models/field.dart';
 
 class CsvEntryScreen extends StatefulWidget {
-  final List<Field> fields;
+  final String setName;
+  final List<String> fields; // 項目名リスト
 
-  CsvEntryScreen({required this.fields});
+  const CsvEntryScreen({Key? key, required this.setName, required this.fields})
+    : super(key: key);
 
   @override
-  _CsvEntryScreenState createState() => _CsvEntryScreenState();
+  State<CsvEntryScreen> createState() => _CsvEntryScreenState();
 }
 
 class _CsvEntryScreenState extends State<CsvEntryScreen> {
-  final Map<int, TextEditingController> _controllers = {};
+  final Map<String, TextEditingController> _controllers = {};
 
   @override
   void initState() {
     super.initState();
     for (var field in widget.fields) {
-      _controllers[field.id ?? 0] = TextEditingController();
+      _controllers[field] = TextEditingController();
     }
   }
 
@@ -31,37 +32,38 @@ class _CsvEntryScreenState extends State<CsvEntryScreen> {
   }
 
   void _saveEntry() {
-    final values = widget.fields.map((field) => _controllers[field.id ?? 0]?.text ?? '').toList();
-    // 保存処理（後で実装）
-    print("入力内容: \$values");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("データを保存しました（仮）")),
-    );
+    final values = <String, String>{};
+    for (var field in widget.fields) {
+      values[field] = _controllers[field]?.text ?? '';
+    }
+    // TODO: DB保存処理を追加
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('保存しました')));
+    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("CSV データ入力")),
-      body: ListView(
-        padding: EdgeInsets.all(16),
-        children: widget.fields.map((field) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12.0),
-            child: TextField(
-              controller: _controllers[field.id ?? 0],
-              decoration: InputDecoration(
-                labelText: field.name,
-                border: OutlineInputBorder(),
+      appBar: AppBar(title: Text('データ入力（${widget.setName}）')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            ...widget.fields.map(
+              (field) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: TextField(
+                  controller: _controllers[field],
+                  decoration: InputDecoration(labelText: field),
+                ),
               ),
             ),
-          );
-        }).toList(),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _saveEntry,
-        child: Icon(Icons.save),
-        tooltip: '保存',
+            const SizedBox(height: 24),
+            ElevatedButton(onPressed: _saveEntry, child: Text('保存')),
+          ],
+        ),
       ),
     );
   }

@@ -1,86 +1,130 @@
 // screens/field_edit_screen.dart
 import 'package:flutter/material.dart';
-import '../models/field.dart';
 
 class FieldEditScreen extends StatefulWidget {
-  final List<Field> fields;
-  final Function(List<Field>) onSave;
+  final String setName;
+  final List<String> fields; // 項目名リスト
 
-  FieldEditScreen({required this.fields, required this.onSave});
+  const FieldEditScreen({Key? key, required this.setName, required this.fields})
+    : super(key: key);
 
   @override
-  _FieldEditScreenState createState() => _FieldEditScreenState();
+  State<FieldEditScreen> createState() => _FieldEditScreenState();
 }
 
 class _FieldEditScreenState extends State<FieldEditScreen> {
-  late List<Field> editableFields;
+  late List<String> _fields;
 
   @override
   void initState() {
     super.initState();
-    editableFields =
-        widget.fields
-            .map(
-              (f) => Field(
-                id: f.id,
-                fieldSetId: f.fieldSetId,
-                name: f.name,
-                type: f.type,
+    _fields = List.from(widget.fields);
+  }
+
+  void _addField() async {
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text('項目追加'),
+            content: TextField(
+              controller: controller,
+              decoration: InputDecoration(labelText: '項目名'),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('キャンセル'),
               ),
-            )
-            .toList();
+              TextButton(
+                onPressed: () => Navigator.pop(context, controller.text),
+                child: Text('追加'),
+              ),
+            ],
+          ),
+    );
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        _fields.add(result);
+      });
+    }
   }
 
-  void _addField() {
+  void _editField(int index) async {
+    final controller = TextEditingController(text: _fields[index]);
+    final result = await showDialog<String>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text('項目編集'),
+            content: TextField(
+              controller: controller,
+              decoration: InputDecoration(labelText: '項目名'),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('キャンセル'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, controller.text),
+                child: Text('保存'),
+              ),
+            ],
+          ),
+    );
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        _fields[index] = result;
+      });
+    }
+  }
+
+  void _removeField(int index) {
     setState(() {
-      editableFields.add(Field(id: 0, fieldSetId: 0, name: '', type: 'text'));
+      _fields.removeAt(index);
     });
-  }
-
-  void _save() {
-    widget.onSave(editableFields);
-    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('CSV項目編集'),
-        actions: [
-          IconButton(icon: Icon(Icons.save), onPressed: _save, tooltip: '保存'),
+      appBar: AppBar(title: Text('項目編集（${widget.setName}）')),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.separated(
+              itemCount: _fields.length,
+              separatorBuilder: (_, __) => Divider(),
+              itemBuilder:
+                  (context, index) => ListTile(
+                    title: Text(_fields[index]),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.edit),
+                          onPressed: () => _editField(index),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.delete),
+                          onPressed: () => _removeField(index),
+                        ),
+                      ],
+                    ),
+                  ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ElevatedButton.icon(
+              icon: Icon(Icons.add),
+              label: Text('項目追加'),
+              onPressed: _addField,
+            ),
+          ),
         ],
-      ),
-      body: ListView.builder(
-        itemCount: editableFields.length,
-        itemBuilder: (context, index) {
-          final field = editableFields[index];
-          return ListTile(
-            leading: Text('${index + 1}'),
-            title: TextFormField(
-              initialValue: field.name,
-              onChanged: (value) {
-                setState(() {
-                  editableFields[index] = field.copyWith(name: value);
-                });
-              },
-              decoration: InputDecoration(labelText: '項目名'),
-            ),
-            trailing: IconButton(
-              icon: Icon(Icons.delete),
-              onPressed: () {
-                setState(() {
-                  editableFields.removeAt(index);
-                });
-              },
-            ),
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addField,
-        child: Icon(Icons.add),
-        tooltip: '項目を追加',
       ),
     );
   }
