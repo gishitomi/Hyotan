@@ -5,6 +5,7 @@ import '../models/field_set.dart';
 import '../models/field.dart';
 import '../models/entry.dart';
 import 'dart:convert';
+import 'dart:io';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._internal();
@@ -19,18 +20,29 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDb() async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'csv_app.db');
-    return await openDatabase(path, version: 1, onCreate: _onCreate);
+    print('initDb start');
+    String path;
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      path = join(Directory.current.path, 'csv_app.db');
+    } else {
+      final dbPath = await getDatabasesPath();
+      path = join(dbPath, 'csv_app.db');
+    }
+    print('DB path: $path');
+    final db = await openDatabase(path, version: 1, onCreate: _onCreate);
+    print('DB opened');
+    return db;
   }
 
   Future<void> _onCreate(Database db, int version) async {
+    print('onCreate start');
     await db.execute('''
       CREATE TABLE field_sets (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL
       )
     ''');
+    print('field_sets created');
     await db.execute('''
       CREATE TABLE fields (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -40,15 +52,17 @@ class DatabaseHelper {
         FOREIGN KEY(fieldSetId) REFERENCES field_sets(id) ON DELETE CASCADE
       )
     ''');
+    print('fields created');
     await db.execute('''
       CREATE TABLE entries (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         fieldSetId INTEGER NOT NULL,
-        values TEXT NOT NULL,
+        entry_values TEXT NOT NULL,
         createdAt TEXT NOT NULL,
         FOREIGN KEY(fieldSetId) REFERENCES field_sets(id) ON DELETE CASCADE
       )
     ''');
+    print('entries created');
   }
 
   // FieldSet CRUD
@@ -113,7 +127,8 @@ class DatabaseHelper {
   Future<int> insertEntry(Entry entry) async {
     final db = await database;
     final map = entry.toMap();
-    map['values'] = jsonEncode(entry.values); // JSON文字列で保存
+    map['entry_values'] = jsonEncode(entry.values); // JSON文字列で保存
+    map.remove('values'); // ← 追加: Map型のままのvaluesを削除
     return await db.insert('entries', map);
   }
 
@@ -126,7 +141,7 @@ class DatabaseHelper {
       orderBy: 'createdAt DESC',
     );
     return maps.map((m) {
-      m['values'] = jsonDecode(m['values'] as String);
+      m['values'] = jsonDecode(m['entry_values'] as String);
       return Entry.fromMap(m);
     }).toList();
   }
@@ -134,5 +149,19 @@ class DatabaseHelper {
   Future<int> deleteEntry(int id) async {
     final db = await database;
     return await db.delete('entries', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> insertTestData() async {
+    // FieldSet追加
+    final setId = await insertFieldSet(FieldSet(name: 'テストセット'));
+    // Field追加
+    await insertField(Field(fieldSetId: setId, name: '項目1', type: 'text'));
+    await insertField(Field(fieldSetId: setId, name: '項目2', type: 'text'));
+    // Entry追加
+    await insertEntry(Entry(
+      fieldSetId: setId,
+      values: {'項目1': 'サンプルA', '項目2': 'サンプルB'},
+      createdAt: DateTime.now(),
+    ));
   }
 }

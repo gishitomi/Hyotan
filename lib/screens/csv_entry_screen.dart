@@ -3,10 +3,15 @@ import 'package:flutter/material.dart';
 
 class CsvEntryScreen extends StatefulWidget {
   final String setName;
-  final List<String> fields; // 項目名リスト
+  final int fieldSetId;
+  final List<String> fields;
 
-  const CsvEntryScreen({Key? key, required this.setName, required this.fields})
-    : super(key: key);
+  const CsvEntryScreen({
+    Key? key,
+    required this.setName,
+    required this.fieldSetId,
+    required this.fields,
+  }) : super(key: key);
 
   @override
   State<CsvEntryScreen> createState() => _CsvEntryScreenState();

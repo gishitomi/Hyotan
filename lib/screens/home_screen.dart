@@ -3,24 +3,8 @@ import 'package:flutter/material.dart';
 import 'csv_entry_screen.dart';
 import 'csv_list_screen.dart';
 import 'field_edit_screen.dart';
-
-// 仮のFieldSetモデル
-class FieldSet {
-  final int? id;
-  final String name;
-  FieldSet({this.id, required this.name});
-}
-
-// 仮のデータ取得関数（本来はDBから取得）
-Future<List<FieldSet>> fetchFieldSets() async {
-  // ここはDBアクセスに置き換えてください
-  await Future.delayed(Duration(milliseconds: 300));
-  return [
-    FieldSet(id: 1, name: 'セット1'),
-    FieldSet(id: 2, name: 'セット2'),
-    FieldSet(id: 3, name: 'セット3'),
-  ];
-}
+import '../db/database_helper.dart';
+import '../models/field_set.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -35,20 +19,43 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _fieldSetsFuture = fetchFieldSets();
+    _fieldSetsFuture = DatabaseHelper.instance.getFieldSets();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('CSVデータ収集アプリ')),
+      appBar: AppBar(
+        title: Text('CSVデータ収集アプリ'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.add_box),
+            tooltip: 'テストデータ追加',
+            onPressed: () async {
+              await DatabaseHelper.instance.insertTestData();
+              setState(() {
+                _fieldSetsFuture = DatabaseHelper.instance.getFieldSets();
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('テストデータを追加しました')),
+              );
+            },
+          ),
+        ],
+      ),
       body: FutureBuilder<List<FieldSet>>(
         future: _fieldSetsFuture,
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+          if (snapshot.connectionState != ConnectionState.done) {
             return Center(child: CircularProgressIndicator());
           }
+          if (snapshot.hasError) {
+            return Center(child: Text('エラー: ${snapshot.error}'));
+          }
           final fieldSets = snapshot.data!;
+          if (fieldSets.isEmpty) {
+            return Center(child: Text('セットがありません'));
+          }
           return ListView(
             children: [
               ListTile(
@@ -73,48 +80,48 @@ class _HomeScreenState extends State<HomeScreen> {
                   title: Text(fs.name),
                   trailing: IconButton(
                     icon: Icon(Icons.edit),
-                    onPressed: () {
-                      // 項目編集画面へ遷移（編集用）
-                      Navigator.push(
+                    onPressed: () async {
+                      // DBからfieldsを取得
+                      final fields =
+                          await DatabaseHelper.instance.getFields(fs.id!);
+                      await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => FieldEditScreen(
                             setName: fs.name,
-                            fields: [], // ここはDBから取得した項目リストを渡す
+                            fieldSetId: fs.id,
+                            fields: fields.map((f) => f.name).toList(),
                           ),
                         ),
                       );
+                      setState(() {
+                        _fieldSetsFuture =
+                            DatabaseHelper.instance.getFieldSets();
+                      });
                     },
                   ),
-                  onTap: () {
-                    // データ入力画面へ遷移
+                  onTap: () async {
+                    // DBからfieldsを取得
+                    final fields =
+                        await DatabaseHelper.instance.getFields(fs.id!);
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => CsvEntryScreen(
                           setName: fs.name,
-                          fields: ['項目1', '項目2', '項目3'], // 仮の項目リスト
+                          fieldSetId: fs.id!,
+                          fields: fields.map((f) => f.name).toList(),
                         ),
                       ),
                     );
                   },
                   onLongPress: () {
-                    // データ一覧画面へ遷移
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => CsvListScreen(
                           setName: fs.name,
-                          entries: [
-                            {
-                              'createdAt': '2024-05-14T12:00:00',
-                              'values': {'項目1': 'A', '項目2': 'B', '項目3': 'C'}
-                            },
-                            {
-                              'createdAt': '2024-05-14T12:05:00',
-                              'values': {'項目1': 'X', '項目2': 'Y', '項目3': 'Z'}
-                            },
-                          ], // 仮のエントリリスト
+                          fieldSetId: fs.id!,
                         ),
                       ),
                     );
