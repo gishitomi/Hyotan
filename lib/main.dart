@@ -15,7 +15,11 @@ class CsvApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'CSVデータ収集アプリ',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: ThemeData(
+        primarySwatch: Colors.green, // ← 緑色に変更
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+        useMaterial3: true, // Material3を使う場合
+      ),
       home: const HomeScreen(),
     );
   }

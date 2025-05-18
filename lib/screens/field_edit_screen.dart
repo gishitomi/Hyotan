@@ -116,7 +116,7 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('項目編集（${widget.setName}）')),
+      appBar: AppBar(title: Text('項目編集')),
       body: Column(
         children: [
           Expanded(
@@ -129,7 +129,7 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: Icon(Icons.edit),
+                      icon: Icon(Icons.edit, color: Colors.blue), // 色を青に統一
                       onPressed: () => _editField(index),
                     ),
                     IconButton(
@@ -143,17 +143,25 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton.icon(
-              icon: Icon(Icons.add),
-              label: Text('項目追加'),
-              onPressed: _addField,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton(
-              onPressed: _saveFields,
-              child: Text('保存'),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: Icon(Icons.add),
+                    label: Text('項目追加'),
+                    onPressed: _addField,
+                  ),
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: Icon(Icons.save),
+                    label: Text('保存'),
+                    onPressed: _saveFields,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

@@ -115,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       // セット名編集ボタン
                       IconButton(
-                        icon: Icon(Icons.edit),
+                        icon: Icon(Icons.edit, color: Colors.blue), // 色を青に統一
                         tooltip: 'セット名編集',
                         onPressed: () async {
                           final controller =
@@ -158,7 +158,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       // 項目編集ボタン
                       IconButton(
-                        icon: Icon(Icons.view_column),
+                        icon: Icon(Icons.view_column,
+                            color: Colors.green), // 色を緑に統一
                         tooltip: '項目編集',
                         onPressed: () async {
                           // DBから項目リストを取得
