@@ -3,7 +3,7 @@
 class Entry {
   final int? id;
   final int fieldSetId;
-  final Map<String, dynamic> values; // 項目名:値
+  final Map<String, dynamic> values;
   final DateTime createdAt;
 
   Entry({
@@ -17,7 +17,7 @@ class Entry {
     return Entry(
       id: map['id'] as int?,
       fieldSetId: map['fieldSetId'] as int,
-      values: Map<String, dynamic>.from(map['values']),
+      values: Map<String, dynamic>.from(map['values'] as Map),
       createdAt: DateTime.parse(map['createdAt'] as String),
     );
   }

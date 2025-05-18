@@ -1,5 +1,8 @@
 // screens/field_edit_screen.dart
 import 'package:flutter/material.dart';
+import '../db/database_helper.dart'; // 必要に応じて追加
+import '../models/field.dart'; // 追加
+import '../models/field_set.dart'; // 追加
 
 class FieldEditScreen extends StatefulWidget {
   final String setName;
@@ -87,6 +90,29 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
     });
   }
 
+  void _saveFields() async {
+    if (widget.fieldSetId == null) {
+      // 新規セットの場合はセットを作成してIDを取得
+      final newSetId = await DatabaseHelper.instance.insertFieldSet(
+        FieldSet(name: widget.setName),
+      );
+      for (final name in _fields) {
+        await DatabaseHelper.instance.insertField(
+          Field(fieldSetId: newSetId, name: name, type: 'text'),
+        );
+      }
+    } else {
+      // 既存セットの場合は項目を全削除して再登録（シンプルな方法）
+      await DatabaseHelper.instance.deleteFieldsBySetId(widget.fieldSetId!);
+      for (final name in _fields) {
+        await DatabaseHelper.instance.insertField(
+          Field(fieldSetId: widget.fieldSetId!, name: name, type: 'text'),
+        );
+      }
+    }
+    Navigator.pop(context, true);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -121,6 +147,13 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
               icon: Icon(Icons.add),
               label: Text('項目追加'),
               onPressed: _addField,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ElevatedButton(
+              onPressed: _saveFields,
+              child: Text('保存'),
             ),
           ),
         ],

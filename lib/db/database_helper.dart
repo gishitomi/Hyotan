@@ -21,13 +21,9 @@ class DatabaseHelper {
 
   Future<Database> _initDb() async {
     print('initDb start');
-    String path;
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      path = join(Directory.current.path, 'csv_app.db');
-    } else {
-      final dbPath = await getDatabasesPath();
-      path = join(dbPath, 'csv_app.db');
-    }
+    // プロジェクト配下の .dart_tool/sqflite_common_ffi/databases/csv_app.db に保存
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, 'csv_app.db');
     print('DB path: $path');
     final db = await openDatabase(path, version: 1, onCreate: _onCreate);
     print('DB opened');
@@ -77,11 +73,11 @@ class DatabaseHelper {
     return maps.map((m) => FieldSet.fromMap(m)).toList();
   }
 
-  Future<int> updateFieldSet(FieldSet fieldSet) async {
+  Future<void> updateFieldSet(FieldSet fieldSet) async {
     final db = await database;
-    return await db.update(
+    await db.update(
       'field_sets',
-      fieldSet.toMap(),
+      {'name': fieldSet.name},
       where: 'id = ?',
       whereArgs: [fieldSet.id],
     );
@@ -123,6 +119,15 @@ class DatabaseHelper {
     return await db.delete('fields', where: 'id = ?', whereArgs: [id]);
   }
 
+  Future<void> deleteFieldsBySetId(int fieldSetId) async {
+    final db = await database;
+    await db.delete(
+      'fields',
+      where: 'fieldSetId = ?',
+      whereArgs: [fieldSetId],
+    );
+  }
+
   // Entry CRUD
   Future<int> insertEntry(Entry entry) async {
     final db = await database;
@@ -141,8 +146,9 @@ class DatabaseHelper {
       orderBy: 'createdAt DESC',
     );
     return maps.map((m) {
-      m['values'] = jsonDecode(m['entry_values'] as String);
-      return Entry.fromMap(m);
+      final map = Map<String, dynamic>.from(m); // クローンを作成
+      map['values'] = jsonDecode(map['entry_values'] as String);
+      return Entry.fromMap(map);
     }).toList();
   }
 

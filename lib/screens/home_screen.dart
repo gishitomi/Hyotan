@@ -61,56 +61,169 @@ class _HomeScreenState extends State<HomeScreen> {
               ListTile(
                 leading: Icon(Icons.add),
                 title: Text('新しいセット'),
-                onTap: () {
-                  // 項目編集画面へ遷移（新規作成用）
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => FieldEditScreen(
-                        setName: '新しいセット',
-                        fields: [],
+                onTap: () async {
+                  // セット名入力ダイアログを表示
+                  final controller = TextEditingController();
+                  final setName = await showDialog<String>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: Text('新しいセット名を入力'),
+                      content: TextField(
+                        controller: controller,
+                        decoration: InputDecoration(labelText: 'セット名'),
+                        autofocus: true,
                       ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text('キャンセル'),
+                        ),
+                        TextButton(
+                          onPressed: () =>
+                              Navigator.pop(context, controller.text.trim()),
+                          child: Text('OK'),
+                        ),
+                      ],
                     ),
                   );
+                  if (setName != null && setName.isNotEmpty) {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FieldEditScreen(
+                          setName: setName,
+                          fields: [],
+                        ),
+                      ),
+                    );
+                    // ★ ここで再取得
+                    if (result == true) {
+                      setState(() {
+                        _fieldSetsFuture =
+                            DatabaseHelper.instance.getFieldSets();
+                      });
+                    }
+                  }
                 },
               ),
               Divider(),
               ...fieldSets.map(
                 (fs) => ListTile(
                   title: Text(fs.name),
-                  trailing: IconButton(
-                    icon: Icon(Icons.edit),
-                    onPressed: () async {
-                      // DBからfieldsを取得
-                      final fields =
-                          await DatabaseHelper.instance.getFields(fs.id!);
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => FieldEditScreen(
-                            setName: fs.name,
-                            fieldSetId: fs.id,
-                            fields: fields.map((f) => f.name).toList(),
-                          ),
-                        ),
-                      );
-                      setState(() {
-                        _fieldSetsFuture =
-                            DatabaseHelper.instance.getFieldSets();
-                      });
-                    },
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // セット名編集ボタン
+                      IconButton(
+                        icon: Icon(Icons.edit),
+                        tooltip: 'セット名編集',
+                        onPressed: () async {
+                          final controller =
+                              TextEditingController(text: fs.name);
+                          final newName = await showDialog<String>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: Text('セット名を編集'),
+                              content: TextField(
+                                controller: controller,
+                                decoration: InputDecoration(labelText: 'セット名'),
+                                autofocus: true,
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: Text('キャンセル'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(
+                                      context, controller.text.trim()),
+                                  child: Text('保存'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (newName != null &&
+                              newName.isNotEmpty &&
+                              newName != fs.name) {
+                            // DBを更新
+                            await DatabaseHelper.instance.updateFieldSet(
+                              fs.copyWith(name: newName),
+                            );
+                            setState(() {
+                              _fieldSetsFuture =
+                                  DatabaseHelper.instance.getFieldSets();
+                            });
+                          }
+                        },
+                      ),
+                      // 項目編集ボタン
+                      IconButton(
+                        icon: Icon(Icons.view_column),
+                        tooltip: '項目編集',
+                        onPressed: () async {
+                          // DBから項目リストを取得
+                          final fields =
+                              await DatabaseHelper.instance.getFields(fs.id!);
+                          final fieldNames = fields.map((f) => f.name).toList();
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => FieldEditScreen(
+                                setName: fs.name,
+                                fieldSetId: fs.id,
+                                fields: fieldNames, // ★ 追加
+                              ),
+                            ),
+                          );
+                          setState(() {
+                            _fieldSetsFuture =
+                                DatabaseHelper.instance.getFieldSets();
+                          });
+                        },
+                      ),
+                      // ★ セット削除ボタン
+                      IconButton(
+                        icon: Icon(Icons.delete, color: Colors.red),
+                        tooltip: 'セット削除',
+                        onPressed: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: Text('削除確認'),
+                              content: Text('このセットを削除しますか？（データも全て削除されます）'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
+                                  child: Text('キャンセル'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: Text('削除',
+                                      style: TextStyle(color: Colors.red)),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirm == true) {
+                            await DatabaseHelper.instance
+                                .deleteFieldSet(fs.id!);
+                            setState(() {
+                              _fieldSetsFuture =
+                                  DatabaseHelper.instance.getFieldSets();
+                            });
+                          }
+                        },
+                      ),
+                    ],
                   ),
                   onTap: () async {
-                    // DBからfieldsを取得
-                    final fields =
-                        await DatabaseHelper.instance.getFields(fs.id!);
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => CsvEntryScreen(
+                        builder: (context) => CsvListScreen(
                           setName: fs.name,
                           fieldSetId: fs.id!,
-                          fields: fields.map((f) => f.name).toList(),
                         ),
                       ),
                     );
