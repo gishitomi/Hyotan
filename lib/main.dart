@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
-  sqfliteFfiInit();
-  databaseFactory = databaseFactoryFfi;
+  // デスクトップ（Windows, macOS, Linux）のみsqflite_common_ffiを初期化
+  if (defaultTargetPlatform == TargetPlatform.windows ||
+      defaultTargetPlatform == TargetPlatform.linux ||
+      defaultTargetPlatform == TargetPlatform.macOS) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
   runApp(const CsvApp());
 }
 
@@ -14,7 +21,7 @@ class CsvApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'CSVデータ収集アプリ',
+      title: 'Hyo-tan', // ← タイトルを変更
       theme: ThemeData(
         primarySwatch: Colors.green, // ← 緑色に変更
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
