@@ -129,11 +129,11 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: Icon(Icons.edit, color: Colors.blue), // 色を青に統一
+                      icon: Icon(Icons.edit, color: Colors.blue), // 編集ボタンは青
                       onPressed: () => _editField(index),
                     ),
                     IconButton(
-                      icon: Icon(Icons.delete),
+                      icon: Icon(Icons.delete, color: Colors.red), // 削除ボタンを赤に
                       onPressed: () => _removeField(index),
                     ),
                   ],

@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-void main() {
+void main() async {
   // デスクトップ（Windows, macOS, Linux）のみsqflite_common_ffiを初期化
   if (defaultTargetPlatform == TargetPlatform.windows ||
       defaultTargetPlatform == TargetPlatform.linux ||
@@ -28,6 +28,7 @@ class CsvApp extends StatelessWidget {
         useMaterial3: true, // Material3を使う場合
       ),
       home: const HomeScreen(),
+      debugShowCheckedModeBanner: false, // ← これを追加
     );
   }
 }

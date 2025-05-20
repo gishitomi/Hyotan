@@ -68,13 +68,31 @@ class _CsvEntryScreenState extends State<CsvEntryScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            ...widget.fields.map(
-              (field) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: TextField(
-                  controller: _controllers[field],
-                  decoration: InputDecoration(labelText: field),
-                ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: widget.fields.length,
+                itemBuilder: (context, index) {
+                  final field = widget.fields[index];
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _controllers[field],
+                          decoration: InputDecoration(labelText: field),
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.delete, color: Colors.red),
+                        tooltip: 'この項目の入力をクリア',
+                        onPressed: () {
+                          setState(() {
+                            _controllers[field]?.clear(); // ★値をクリアするだけ
+                          });
+                        },
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
             const SizedBox(height: 24),

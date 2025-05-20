@@ -27,21 +27,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('CSVデータ収集アプリ'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.add_box),
-            tooltip: 'テストデータ追加',
-            onPressed: () async {
-              await DatabaseHelper.instance.insertTestData();
-              setState(() {
-                _fieldSetsFuture = DatabaseHelper.instance.getFieldSets();
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('テストデータを追加しました')),
-              );
-            },
-          ),
-        ],
       ),
       body: FutureBuilder<List<FieldSet>>(
         future: _fieldSetsFuture,
@@ -115,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       // セット名編集ボタン
                       IconButton(
-                        icon: Icon(Icons.edit, color: Colors.blue), // 色を青に統一
+                        icon: Icon(Icons.edit, color: Colors.blue),
                         tooltip: 'セット名編集',
                         onPressed: () async {
                           final controller =
@@ -158,8 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       // 項目編集ボタン
                       IconButton(
-                        icon: Icon(Icons.view_column,
-                            color: Colors.green), // 色を緑に統一
+                        icon: Icon(Icons.view_column, color: Colors.green),
                         tooltip: '項目編集',
                         onPressed: () async {
                           // DBから項目リストを取得
@@ -172,7 +156,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               builder: (context) => FieldEditScreen(
                                 setName: fs.name,
                                 fieldSetId: fs.id,
-                                fields: fieldNames, // ★ 追加
+                                fields: fieldNames,
                               ),
                             ),
                           );
@@ -182,7 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           });
                         },
                       ),
-                      // ★ セット削除ボタン
+                      // セット削除ボタン
                       IconButton(
                         icon: Icon(Icons.delete, color: Colors.red),
                         tooltip: 'セット削除',
