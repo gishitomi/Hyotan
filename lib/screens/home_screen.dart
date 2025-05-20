@@ -39,7 +39,63 @@ class _HomeScreenState extends State<HomeScreen> {
           }
           final fieldSets = snapshot.data!;
           if (fieldSets.isEmpty) {
-            return Center(child: Text('セットがありません'));
+            // セットがない場合も「新しいセット」ボタンを表示
+            return ListView(
+              children: [
+                ListTile(
+                  leading: Icon(Icons.add),
+                  title: Text('新しいセット'),
+                  onTap: () async {
+                    // セット名入力ダイアログを表示
+                    final controller = TextEditingController();
+                    final setName = await showDialog<String>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: Text('新しいセット名を入力'),
+                        content: TextField(
+                          controller: controller,
+                          decoration: InputDecoration(labelText: 'セット名'),
+                          autofocus: true,
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text('キャンセル'),
+                          ),
+                          TextButton(
+                            onPressed: () =>
+                                Navigator.pop(context, controller.text.trim()),
+                            child: Text('OK'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (setName != null && setName.isNotEmpty) {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => FieldEditScreen(
+                            setName: setName,
+                            fields: [],
+                          ),
+                        ),
+                      );
+                      // ★ ここで再取得
+                      if (result == true) {
+                        setState(() {
+                          _fieldSetsFuture =
+                              DatabaseHelper.instance.getFieldSets();
+                        });
+                      }
+                    }
+                  },
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Center(child: Text('セットがありません')),
+                ),
+              ],
+            );
           }
           return ListView(
             children: [
