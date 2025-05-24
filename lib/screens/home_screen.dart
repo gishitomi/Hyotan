@@ -26,7 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('CSVデータ収集アプリ'),
+        title: Text('Hyo-tan（ひょうたん）'), // ← ここを変更
       ),
       body: FutureBuilder<List<FieldSet>>(
         future: _fieldSetsFuture,

@@ -76,7 +76,7 @@ class _CsvListScreenState extends State<CsvListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('データ一覧（${widget.setName}）'),
+        title: Text('Hyo-tan（ひょうたん）'),
         actions: [
           // ★ CSV出力ボタン追加
           IconButton(

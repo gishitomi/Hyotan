@@ -116,7 +116,9 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('項目編集')),
+      appBar: AppBar(
+        title: Text('Hyo-tan（ひょうたん）'),
+      ),
       body: Column(
         children: [
           Expanded(

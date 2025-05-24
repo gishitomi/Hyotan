@@ -63,7 +63,9 @@ class _CsvEntryScreenState extends State<CsvEntryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('データ入力（${widget.setName}）')),
+      appBar: AppBar(
+        title: Text('Hyo-tan（ひょうたん）'),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
