@@ -7,6 +7,8 @@ import '../models/entry.dart'; // 追加
 import '../models/field.dart'; // 追加
 import 'package:csv/csv.dart';
 import 'package:intl/intl.dart'; // 追加
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 class CsvListScreen extends StatefulWidget {
   final String setName;
@@ -61,11 +63,17 @@ class _CsvListScreenState extends State<CsvListScreen> {
     // CSV文字列生成
     final csvString = const ListToCsvConverter().convert(csvData);
 
+    // 一時ディレクトリにCSVファイルを書き込み
+    final directory = await getTemporaryDirectory();
+    final path = '${directory.path}/data.csv';
+    final file = File(path);
+    await file.writeAsString(csvString);
+
     // 共有ダイアログ表示（メールやLINEなど）
-    await Share.share(
-      csvString,
-      subject: '${widget.setName}のデータ',
-      sharePositionOrigin: Rect.fromLTWH(0, 0, 100, 100),
+    await Share.shareXFiles(
+      [XFile(path)],
+      text: 'CSVデータを送信します',
+      subject: 'データ',
     );
   }
 
@@ -78,43 +86,13 @@ class _CsvListScreenState extends State<CsvListScreen> {
       appBar: AppBar(
         title: Text('Hyo-tan（ひょうたん）'),
         actions: [
-          // ★ CSV出力ボタン追加
+          // CSV出力ボタンのみ右上に残す
           IconButton(
             icon: Icon(Icons.file_download),
             tooltip: 'CSV出力',
             onPressed: () async {
               await _exportCsv(context);
             },
-          ),
-          IconButton(
-            icon: Icon(Icons.add, color: Colors.black),
-            tooltip: '新規登録',
-            onPressed: _isNavigating
-                ? null
-                : () async {
-                    setState(() {
-                      _isNavigating = true;
-                    });
-                    final fields = await DatabaseHelper.instance
-                        .getFields(widget.fieldSetId);
-                    final fieldNames = fields.map((f) => f.name).toList();
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CsvEntryScreen(
-                          setName: widget.setName,
-                          fieldSetId: widget.fieldSetId,
-                          fields: fieldNames,
-                        ),
-                      ),
-                    );
-                    setState(() {
-                      _isNavigating = false;
-                      _loadEntries(); // ★ 追加：戻ってきたら再取得
-                      _fieldsFuture = DatabaseHelper.instance
-                          .getFields(widget.fieldSetId); // ←追加
-                    });
-                  },
           ),
         ],
       ),
@@ -232,6 +210,43 @@ class _CsvListScreenState extends State<CsvListScreen> {
           );
         },
       ),
+      // 画面下部中央にやや小さめの丸いボタンを配置
+      floatingActionButton: SizedBox(
+        width: 64, // ← ここを小さく
+        height: 64, // ← ここを小さく
+        child: FloatingActionButton(
+          shape: const CircleBorder(),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          child: Icon(Icons.add, size: 32, color: Colors.white), // ← アイコンも少し小さく
+          onPressed: _isNavigating
+              ? null
+              : () async {
+                  setState(() {
+                    _isNavigating = true;
+                  });
+                  final fields = await DatabaseHelper.instance
+                      .getFields(widget.fieldSetId);
+                  final fieldNames = fields.map((f) => f.name).toList();
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CsvEntryScreen(
+                        setName: widget.setName,
+                        fieldSetId: widget.fieldSetId,
+                        fields: fieldNames,
+                      ),
+                    ),
+                  );
+                  setState(() {
+                    _isNavigating = false;
+                    _loadEntries();
+                    _fieldsFuture =
+                        DatabaseHelper.instance.getFields(widget.fieldSetId);
+                  });
+                },
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
