@@ -29,6 +29,10 @@ class _CsvListScreenState extends State<CsvListScreen> {
   late Future<List<Field>> _fieldsFuture;
   bool _isNavigating = false;
 
+  // ソート状態を保持
+  String? _sortColumn;
+  bool _sortAscending = true;
+
   @override
   void initState() {
     super.initState();
@@ -61,7 +65,8 @@ class _CsvListScreenState extends State<CsvListScreen> {
     }
 
     // CSV文字列生成
-    final csvString = const ListToCsvConverter().convert(csvData);
+    final csvConverter = ListToCsvConverter(eol: '\n');
+    final csvString = csvConverter.convert(csvData);
 
     // 一時ディレクトリにCSVファイルを書き込み
     final directory = await getTemporaryDirectory();
@@ -108,9 +113,8 @@ class _CsvListScreenState extends State<CsvListScreen> {
           if (!snapshot.hasData) {
             return Center(child: Text('データがありません'));
           }
-          final entries = snapshot.data!;
+          var entries = snapshot.data!;
 
-          // カラム名をFieldテーブルから取得
           return FutureBuilder<List<Field>>(
             future: _fieldsFuture,
             builder: (context, fieldSnapshot) {
@@ -119,20 +123,72 @@ class _CsvListScreenState extends State<CsvListScreen> {
               }
               final columns = fieldSnapshot.data!.map((f) => f.name).toList();
 
+              // ソート処理
+              if (_sortColumn != null) {
+                if (_sortColumn == 'No.') {
+                  entries.sort((a, b) => _sortAscending
+                      ? a.id!.compareTo(b.id!)
+                      : b.id!.compareTo(a.id!));
+                } else if (_sortColumn == '日時') {
+                  entries.sort((a, b) => _sortAscending
+                      ? a.createdAt.compareTo(b.createdAt)
+                      : b.createdAt.compareTo(a.createdAt));
+                } else {
+                  entries.sort((a, b) {
+                    final av = a.values[_sortColumn]?.toString() ?? '';
+                    final bv = b.values[_sortColumn]?.toString() ?? '';
+                    return _sortAscending ? av.compareTo(bv) : bv.compareTo(av);
+                  });
+                }
+              }
+
               return SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
+                  sortColumnIndex: _sortColumn == null
+                      ? null
+                      : (() {
+                          if (_sortColumn == 'No.') return 0;
+                          if (_sortColumn == '日時') return columns.length + 1;
+                          final idx = columns.indexOf(_sortColumn!);
+                          return idx == -1 ? null : idx + 1;
+                        })(),
+                  sortAscending: _sortAscending,
                   columns: [
-                    DataColumn(label: Text('No.')),
-                    ...columns.map((col) => DataColumn(label: Text(col))),
-                    DataColumn(label: Text('日時')), // 日時を編集ボタンの左隣に
+                    DataColumn(
+                      label: Text('No.'),
+                      onSort: (i, asc) {
+                        setState(() {
+                          _sortColumn = 'No.';
+                          _sortAscending = asc;
+                        });
+                      },
+                    ),
+                    ...columns.map((col) => DataColumn(
+                          label: Text(col),
+                          onSort: (i, asc) {
+                            setState(() {
+                              _sortColumn = col;
+                              _sortAscending = asc;
+                            });
+                          },
+                        )),
+                    DataColumn(
+                      label: Text('日時'),
+                      onSort: (i, asc) {
+                        setState(() {
+                          _sortColumn = '日時';
+                          _sortAscending = asc;
+                        });
+                      },
+                    ),
                     DataColumn(label: Text('')), // 操作列
                   ],
                   rows: List.generate(entries.length, (index) {
                     final entry = entries[index];
                     return DataRow(
                       cells: [
-                        DataCell(Text('${index + 1}')), // 行番号
+                        DataCell(Text('${index + 1}')),
                         ...columns.map((col) => DataCell(
                             Text(entry.values[col]?.toString() ?? ''))),
                         DataCell(Text(
@@ -203,7 +259,7 @@ class _CsvListScreenState extends State<CsvListScreen> {
                         )),
                       ],
                     );
-                  }).toList(),
+                  }),
                 ),
               );
             },
