@@ -9,6 +9,7 @@ import 'package:csv/csv.dart';
 import 'package:intl/intl.dart'; // 追加
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class CsvListScreen extends StatefulWidget {
   final String setName;
@@ -33,11 +34,29 @@ class _CsvListScreenState extends State<CsvListScreen> {
   String? _sortColumn;
   bool _sortAscending = true;
 
+  late BannerAd _bannerAd;
+  bool _isAdLoaded = false;
+
+  // Stateクラスのフィールドにコントローラを追加
+  final ScrollController _horizontalScrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
     _loadEntries();
     _fieldsFuture = DatabaseHelper.instance.getFields(widget.fieldSetId);
+
+    _bannerAd = BannerAd(
+      adUnitId: 'ca-app-pub-9487888965458679/8474773818', // ←あなたのバナー広告ユニットID
+      size: AdSize.banner,
+      request: AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (ad) => setState(() => _isAdLoaded = true),
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+        },
+      ),
+    )..load();
   }
 
   void _loadEntries() {
@@ -142,124 +161,123 @@ class _CsvListScreenState extends State<CsvListScreen> {
                 }
               }
 
-              return SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: DataTable(
-                  sortColumnIndex: _sortColumn == null
-                      ? null
-                      : (() {
-                          if (_sortColumn == 'No.') return 0;
-                          if (_sortColumn == '日時') return columns.length + 1;
-                          final idx = columns.indexOf(_sortColumn!);
-                          return idx == -1 ? null : idx + 1;
-                        })(),
-                  sortAscending: _sortAscending,
-                  columns: [
-                    DataColumn(
-                      label: Text('No.'),
-                      onSort: (i, asc) {
-                        setState(() {
-                          _sortColumn = 'No.';
-                          _sortAscending = asc;
-                        });
-                      },
-                    ),
-                    ...columns.map((col) => DataColumn(
-                          label: Text(col),
-                          onSort: (i, asc) {
-                            setState(() {
-                              _sortColumn = col;
-                              _sortAscending = asc;
-                            });
-                          },
-                        )),
-                    DataColumn(
-                      label: Text('日時'),
-                      onSort: (i, asc) {
-                        setState(() {
-                          _sortColumn = '日時';
-                          _sortAscending = asc;
-                        });
-                      },
-                    ),
-                    DataColumn(label: Text('')), // 操作列
-                  ],
-                  rows: List.generate(entries.length, (index) {
-                    final entry = entries[index];
-                    return DataRow(
-                      cells: [
-                        DataCell(Text('${index + 1}')),
-                        ...columns.map((col) => DataCell(
-                            Text(entry.values[col]?.toString() ?? ''))),
-                        DataCell(Text(
-                            dateFormat.format(entry.createdAt))), // フォーマット済み日時
-                        DataCell(Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(Icons.edit, color: Colors.blue),
-                              tooltip: '編集',
-                              onPressed: () async {
-                                // 編集画面へ遷移（CsvEntryScreenを編集用に使う場合）
-                                final fields = await DatabaseHelper.instance
-                                    .getFields(widget.fieldSetId);
-                                final fieldNames =
-                                    fields.map((f) => f.name).toList();
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => CsvEntryScreen(
-                                      setName: widget.setName,
-                                      fieldSetId: widget.fieldSetId,
-                                      fields: fieldNames,
-                                      entry:
-                                          entry, // 編集用にentryを渡す（CsvEntryScreen側で対応必要）
+              return Scrollbar(
+                thumbVisibility: true,
+                controller: _horizontalScrollController, // 追加
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent, // ← これで一覧外のスワイプも検知
+                  onHorizontalDragUpdate: (details) {
+                    _horizontalScrollController.jumpTo(
+                      _horizontalScrollController.offset - details.delta.dx,
+                    );
+                  },
+                  child: SingleChildScrollView(
+                    controller: _horizontalScrollController, // 追加
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      sortColumnIndex: _sortColumn == null
+                          ? null
+                          : (() {
+                              if (_sortColumn == 'No.') return 0;
+                              if (_sortColumn == '日時')
+                                return columns.length + 1;
+                              final idx = columns.indexOf(_sortColumn!);
+                              return idx == -1 ? null : idx + 1;
+                            })(),
+                      sortAscending: _sortAscending,
+                      columns: [
+                        DataColumn(label: Text('削除')),
+                        DataColumn(label: Text('編集')), // ← 編集ボタン用の列を追加
+                        DataColumn(label: Text('No.')),
+                        ...columns.map((col) => DataColumn(label: Text(col))),
+                        DataColumn(label: Text('日時')),
+                      ],
+                      rows: List.generate(entries.length, (index) {
+                        final entry = entries[index];
+                        return DataRow(
+                          cells: [
+                            // 削除ボタンセル（左端）
+                            DataCell(
+                              IconButton(
+                                icon: Icon(Icons.delete, color: Colors.red),
+                                onPressed: () async {
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: Text('削除確認'),
+                                      content: Text('このデータを削除しますか？'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, false),
+                                          child: Text('キャンセル'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, true),
+                                          child: Text('削除'),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                );
-                                setState(() {
-                                  _loadEntries();
-                                  _fieldsFuture = DatabaseHelper.instance
-                                      .getFields(widget.fieldSetId);
-                                });
-                              },
+                                  );
+                                  if (confirm == true) {
+                                    await DatabaseHelper.instance
+                                        .deleteEntry(entry.id!);
+                                    setState(() {
+                                      _loadEntries();
+                                    });
+                                  }
+                                },
+                              ),
                             ),
-                            IconButton(
-                              icon: Icon(Icons.delete, color: Colors.red),
-                              tooltip: '削除',
-                              onPressed: () async {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: Text('削除確認'),
-                                    content: Text('このデータを削除しますか？'),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(context, false),
-                                        child: Text('キャンセル'),
+                            // 編集ボタンセル（削除の右側）
+                            DataCell(
+                              IconButton(
+                                icon: Icon(Icons.edit, color: Colors.blue),
+                                onPressed: () async {
+                                  final fields = await DatabaseHelper.instance
+                                      .getFields(widget.fieldSetId);
+                                  final fieldNames =
+                                      fields.map((f) => f.name).toList();
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => CsvEntryScreen(
+                                        setName: widget.setName,
+                                        fieldSetId: widget.fieldSetId,
+                                        fields: fieldNames,
+                                        entry: entry,
                                       ),
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(context, true),
-                                        child: Text('削除'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                                if (confirm == true) {
-                                  await DatabaseHelper.instance
-                                      .deleteEntry(entry.id!);
+                                    ),
+                                  );
                                   setState(() {
                                     _loadEntries();
                                   });
-                                }
-                              },
+                                },
+                              ),
                             ),
+                            DataCell(Text('${index + 1}')),
+                            ...columns.map((col) => DataCell(Container(
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      right: BorderSide(
+                                          color: Colors.grey), // 右側に縦線
+                                      bottom: BorderSide(
+                                          color: Colors.grey), // 下側に横線（必要なら）
+                                    ),
+                                  ),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  child:
+                                      Text(entry.values[col]?.toString() ?? ''),
+                                ))),
+                            DataCell(Text(dateFormat.format(entry.createdAt))),
+                            // 他のセルがあればここに追加
                           ],
-                        )),
-                      ],
-                    );
-                  }),
+                        );
+                      }),
+                    ),
+                  ),
                 ),
               );
             },
@@ -303,7 +321,20 @@ class _CsvListScreenState extends State<CsvListScreen> {
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      bottomNavigationBar: _isAdLoaded
+          ? SizedBox(
+              height: _bannerAd.size.height.toDouble(),
+              child: AdWidget(ad: _bannerAd),
+            )
+          : null,
     );
+  }
+
+  @override
+  void dispose() {
+    _bannerAd.dispose();
+    _horizontalScrollController.dispose(); // 追加
+    super.dispose();
   }
 
   // 新規登録画面から戻ってきたときに再取得

@@ -3,6 +3,7 @@ import 'screens/home_screen.dart';
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 void main() async {
   // デスクトップ（Windows, macOS, Linux）のみsqflite_common_ffiを初期化
@@ -12,6 +13,8 @@ void main() async {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   }
+  WidgetsFlutterBinding.ensureInitialized();
+  await MobileAds.instance.initialize();
   runApp(const CsvApp());
 }
 
@@ -21,11 +24,12 @@ class CsvApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Hyo-tan', // ← タイトルを変更
+      title: 'Hyo-tan（ひょうたん）',
       theme: ThemeData(
-        primarySwatch: Colors.green, // ← 緑色に変更
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
-        useMaterial3: true, // Material3を使う場合
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue), // ← ここを青に
+        useMaterial3: true,
+        // もしprimarySwatchを使っている場合はこちらも
+        // primarySwatch: Colors.blue,
       ),
       home: const HomeScreen(),
       debugShowCheckedModeBanner: false, // ← これを追加
