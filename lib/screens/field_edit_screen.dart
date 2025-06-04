@@ -1,6 +1,7 @@
 // screens/field_edit_screen.dart
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import '../db/database_helper.dart'; // 必要に応じて追加
 import '../models/field.dart'; // 追加
 import '../models/field_set.dart'; // 追加
@@ -198,101 +199,100 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Hyo-tan（ひょうたん）'),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.separated(
-              itemCount: _fields.length,
-              separatorBuilder: (_, __) => Divider(),
-              itemBuilder: (context, index) => ListTile(
-                title: TextFormField(
-                  initialValue: _fields[index],
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: '項目名',
+    return MaterialApp(
+      locale: const Locale('ja'), // 日本語を指定
+      supportedLocales: const [
+        Locale('ja'), // 日本語
+        Locale('en'), // 英語（必要なら他も追加）
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      home: Scaffold(
+        appBar: AppBar(
+          title: Text('Hyo-tan（ひょうたん）'),
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: ListView.separated(
+                itemCount: _fields.length,
+                separatorBuilder: (_, __) => Divider(),
+                itemBuilder: (context, index) => ListTile(
+                  title: TextFormField(
+                    initialValue: _fields[index],
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      hintText: '項目名',
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        _fields[index] = value;
+                      });
+                    },
                   ),
-                  onChanged: (value) {
-                    setState(() {
-                      _fields[index] = value;
-                    });
-                  },
-                ),
-                // 書式変更ボタン
-                leading: IconButton(
-                  icon: Icon(
+                  // 書式変更ボタン
+                  leading: IconButton(
+                    icon: Icon(
+                      _types[index] == 'text'
+                          ? Icons.text_fields
+                          : _types[index] == 'number'
+                              ? Icons.pin
+                              : Icons.date_range,
+                      color: Colors.blue,
+                    ),
+                    tooltip: '書式変更',
+                    onPressed: () => _changeType(index),
+                  ),
+                  trailing: IconButton(
+                    icon: Icon(Icons.delete, color: Colors.red),
+                    onPressed: () => _removeField(index),
+                  ),
+                  subtitle: Text(
                     _types[index] == 'text'
-                        ? Icons.text_fields
+                        ? 'テキスト'
                         : _types[index] == 'number'
-                            ? Icons.pin
-                            : Icons.date_range,
-                    color: Colors.blue,
+                            ? '数値'
+                            : '日付',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                   ),
-                  tooltip: '書式変更',
-                  onPressed: () => _changeType(index),
-                ),
-                trailing: IconButton(
-                  icon: Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => _removeField(index),
-                ),
-                subtitle: Text(
-                  _types[index] == 'text'
-                      ? 'テキスト'
-                      : _types[index] == 'number'
-                          ? '数値'
-                          : '日付',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                 ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    icon: Icon(Icons.add),
-                    label: Text('項目追加'),
-                    onPressed: _addField,
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      icon: Icon(Icons.add),
+                      label: Text('項目追加'),
+                      onPressed: _addField,
+                    ),
                   ),
-                ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    icon: Icon(Icons.save),
-                    label: Text('保存'),
-                    onPressed: _saveFields,
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      icon: Icon(Icons.save),
+                      label: Text('保存'),
+                      onPressed: _saveFields,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
+        bottomNavigationBar: _isAdLoaded
+            ? SizedBox(
+                height: _bannerAd.size.height.toDouble(),
+                child: AdWidget(ad: _bannerAd),
+              )
+            : null,
       ),
-      bottomNavigationBar: _isAdLoaded
-          ? SizedBox(
-              height: _bannerAd.size.height.toDouble(),
-              child: AdWidget(ad: _bannerAd),
-            )
-          : null,
     );
   }
 }
-
-// 画面遷移の例
-Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (context) => FieldEditScreen(
-      setName: ...,
-      fieldSetId: ...,
-      fields: fields,
-      types: types, // 追加
-    ),
-  ),
-);
