@@ -10,14 +10,14 @@ class FieldEditScreen extends StatefulWidget {
   final String setName;
   final int? fieldSetId;
   final List<String> fields;
-  final List<String> types; // 追加
+  final List<String> types;
 
   const FieldEditScreen({
     Key? key,
     required this.setName,
     this.fieldSetId,
     required this.fields,
-    required this.types, // 追加
+    required this.types,
   }) : super(key: key);
 
   @override
