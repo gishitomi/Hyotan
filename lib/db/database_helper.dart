@@ -208,11 +208,21 @@ class DatabaseHelper {
         values.remove(fieldName);
         await db.update(
           'entries',
-          {'values': jsonEncode(values)},
+          {'entry_values': jsonEncode(values)}, // ← 修正
           where: 'id = ?',
           whereArgs: [entry['id']],
         );
       }
     }
+  }
+
+  Future<List<String>> getFieldTypes(int fieldSetId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> fields = await db.query(
+      'fields',
+      where: 'fieldSetId = ?',
+      whereArgs: [fieldSetId],
+    );
+    return fields.map((field) => field['type'] as String).toList();
   }
 }
