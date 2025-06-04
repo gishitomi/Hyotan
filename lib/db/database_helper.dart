@@ -170,4 +170,49 @@ class DatabaseHelper {
       createdAt: DateTime.now(),
     ));
   }
+
+  Future<void> renameEntryField(
+      int fieldSetId, String oldName, String newName) async {
+    final db = await database;
+    final entries = await db.query(
+      'entries',
+      where: 'fieldSetId = ?',
+      whereArgs: [fieldSetId],
+    );
+    for (final entry in entries) {
+      final values = Map<String, dynamic>.from(
+          jsonDecode(entry['entry_values'] as String));
+      if (values.containsKey(oldName)) {
+        values[newName] = values.remove(oldName);
+        await db.update(
+          'entries',
+          {'values': jsonEncode(values)},
+          where: 'id = ?',
+          whereArgs: [entry['id']],
+        );
+      }
+    }
+  }
+
+  Future<void> removeEntryField(int fieldSetId, String fieldName) async {
+    final db = await database;
+    final entries = await db.query(
+      'entries',
+      where: 'fieldSetId = ?',
+      whereArgs: [fieldSetId],
+    );
+    for (final entry in entries) {
+      final values = Map<String, dynamic>.from(
+          jsonDecode(entry['entry_values'] as String));
+      if (values.containsKey(fieldName)) {
+        values.remove(fieldName);
+        await db.update(
+          'entries',
+          {'values': jsonEncode(values)},
+          where: 'id = ?',
+          whereArgs: [entry['id']],
+        );
+      }
+    }
+  }
 }

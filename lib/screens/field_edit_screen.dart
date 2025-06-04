@@ -67,13 +67,14 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
     if (result != null && result.isNotEmpty) {
       setState(() {
         _fields.add(result);
-        _types.add('text'); // デフォルト型も追加
+        _types.add('text'); // 必ず型も追加
       });
     }
   }
 
-  void _editField(int index) async {
-    final controller = TextEditingController(text: _fields[index]);
+  Future<void> _editField(int index) async {
+    final oldName = _fields[index];
+    final controller = TextEditingController(text: oldName);
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -94,17 +95,23 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
         ],
       ),
     );
-    if (result != null && result.isNotEmpty) {
+    if (result != null && result.isNotEmpty && result != oldName) {
       setState(() {
         _fields[index] = result;
       });
+      // ここでEntryのvaluesのキーも更新
+      await DatabaseHelper.instance.renameEntryField(
+        widget.fieldSetId!,
+        oldName,
+        result,
+      );
     }
   }
 
   void _removeField(int index) {
     setState(() {
       _fields.removeAt(index);
-      _types.removeAt(index);
+      _types.removeAt(index); // 型も同時に削除
     });
   }
 

@@ -109,180 +109,191 @@ class _CsvListScreenState extends State<CsvListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Hyo-tan（ひょうたん）'),
-        actions: [
-          // CSV出力ボタンのみ右上に残す
-          IconButton(
-            icon: Icon(Icons.file_download),
-            tooltip: 'CSV出力',
-            onPressed: () async {
-              await _exportCsv(context);
-            },
-          ),
-        ],
       ),
-      body: FutureBuilder<List<Entry>>(
-        future: _entriesFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('エラー: ${snapshot.error}'));
-          }
-          if (!snapshot.hasData) {
-            return Center(child: Text('データがありません'));
-          }
-          var entries = snapshot.data!;
+      body: Column(
+        children: [
+          // 上部バナー広告
+          if (_isAdLoaded)
+            SizedBox(
+              height: _bannerAd.size.height.toDouble(),
+              child: AdWidget(ad: _bannerAd),
+            ),
+          // 既存の画面内容
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: FutureBuilder<List<Entry>>(
+                future: _entriesFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('エラー: ${snapshot.error}'));
+                  }
+                  if (!snapshot.hasData) {
+                    return Center(child: Text('データがありません'));
+                  }
+                  var entries = snapshot.data!;
 
-          return FutureBuilder<List<Field>>(
-            future: _fieldsFuture,
-            builder: (context, fieldSnapshot) {
-              if (!fieldSnapshot.hasData) {
-                return Center(child: CircularProgressIndicator());
-              }
-              final columns = fieldSnapshot.data!.map((f) => f.name).toList();
+                  return FutureBuilder<List<Field>>(
+                    future: _fieldsFuture,
+                    builder: (context, fieldSnapshot) {
+                      if (!fieldSnapshot.hasData) {
+                        return Center(child: CircularProgressIndicator());
+                      }
+                      final columns =
+                          fieldSnapshot.data!.map((f) => f.name).toList();
 
-              // ソート処理
-              if (_sortColumn != null) {
-                if (_sortColumn == 'No.') {
-                  entries.sort((a, b) => _sortAscending
-                      ? a.id!.compareTo(b.id!)
-                      : b.id!.compareTo(a.id!));
-                } else if (_sortColumn == '日時') {
-                  entries.sort((a, b) => _sortAscending
-                      ? a.createdAt.compareTo(b.createdAt)
-                      : b.createdAt.compareTo(a.createdAt));
-                } else {
-                  entries.sort((a, b) {
-                    final av = a.values[_sortColumn]?.toString() ?? '';
-                    final bv = b.values[_sortColumn]?.toString() ?? '';
-                    return _sortAscending ? av.compareTo(bv) : bv.compareTo(av);
-                  });
-                }
-              }
+                      // ソート処理
+                      if (_sortColumn != null) {
+                        if (_sortColumn == 'No.') {
+                          entries.sort((a, b) => _sortAscending
+                              ? a.id!.compareTo(b.id!)
+                              : b.id!.compareTo(a.id!));
+                        } else if (_sortColumn == '日時') {
+                          entries.sort((a, b) => _sortAscending
+                              ? a.createdAt.compareTo(b.createdAt)
+                              : b.createdAt.compareTo(a.createdAt));
+                        } else {
+                          entries.sort((a, b) {
+                            final av = a.values[_sortColumn]?.toString() ?? '';
+                            final bv = b.values[_sortColumn]?.toString() ?? '';
+                            return _sortAscending
+                                ? av.compareTo(bv)
+                                : bv.compareTo(av);
+                          });
+                        }
+                      }
 
-              return Scrollbar(
-                thumbVisibility: true,
-                controller: _horizontalScrollController, // 追加
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent, // ← これで一覧外のスワイプも検知
-                  onHorizontalDragUpdate: (details) {
-                    _horizontalScrollController.jumpTo(
-                      _horizontalScrollController.offset - details.delta.dx,
-                    );
-                  },
-                  child: SingleChildScrollView(
-                    controller: _horizontalScrollController, // 追加
-                    scrollDirection: Axis.horizontal,
-                    child: DataTable(
-                      sortColumnIndex: _sortColumn == null
-                          ? null
-                          : (() {
-                              if (_sortColumn == 'No.') return 0;
-                              if (_sortColumn == '日時')
-                                return columns.length + 1;
-                              final idx = columns.indexOf(_sortColumn!);
-                              return idx == -1 ? null : idx + 1;
-                            })(),
-                      sortAscending: _sortAscending,
-                      columns: [
-                        DataColumn(label: Text('削除')),
-                        DataColumn(label: Text('編集')), // ← 編集ボタン用の列を追加
-                        DataColumn(label: Text('No.')),
-                        ...columns.map((col) => DataColumn(label: Text(col))),
-                        DataColumn(label: Text('日時')),
-                      ],
-                      rows: List.generate(entries.length, (index) {
-                        final entry = entries[index];
-                        return DataRow(
-                          cells: [
-                            // 削除ボタンセル（左端）
-                            DataCell(
-                              IconButton(
-                                icon: Icon(Icons.delete, color: Colors.red),
-                                onPressed: () async {
-                                  final confirm = await showDialog<bool>(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      title: Text('削除確認'),
-                                      content: Text('このデータを削除しますか？'),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, false),
-                                          child: Text('キャンセル'),
-                                        ),
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, true),
-                                          child: Text('削除'),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                  if (confirm == true) {
-                                    await DatabaseHelper.instance
-                                        .deleteEntry(entry.id!);
-                                    setState(() {
-                                      _loadEntries();
-                                    });
-                                  }
-                                },
-                              ),
-                            ),
-                            // 編集ボタンセル（削除の右側）
-                            DataCell(
-                              IconButton(
-                                icon: Icon(Icons.edit, color: Colors.blue),
-                                onPressed: () async {
-                                  final fields = await DatabaseHelper.instance
-                                      .getFields(widget.fieldSetId);
-                                  final fieldNames =
-                                      fields.map((f) => f.name).toList();
-                                  await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => CsvEntryScreen(
-                                        setName: widget.setName,
-                                        fieldSetId: widget.fieldSetId,
-                                        fields: fieldNames,
-                                        entry: entry,
+                      return Scrollbar(
+                        thumbVisibility: true,
+                        controller: _horizontalScrollController, // 追加
+                        child: GestureDetector(
+                          behavior:
+                              HitTestBehavior.translucent, // ← これで一覧外のスワイプも検知
+                          onHorizontalDragUpdate: (details) {
+                            _horizontalScrollController.jumpTo(
+                              _horizontalScrollController.offset -
+                                  details.delta.dx,
+                            );
+                          },
+                          child: SingleChildScrollView(
+                            controller: _horizontalScrollController, // 追加
+                            scrollDirection: Axis.horizontal,
+                            child: DataTable(
+                              sortColumnIndex: _sortColumn == null
+                                  ? null
+                                  : (() {
+                                      if (_sortColumn == 'No.') return 0;
+                                      if (_sortColumn == '日時')
+                                        return columns.length + 1;
+                                      final idx = columns.indexOf(_sortColumn!);
+                                      return idx == -1 ? null : idx + 1;
+                                    })(),
+                              sortAscending: _sortAscending,
+                              columns: [
+                                DataColumn(label: Text('削除')),
+                                DataColumn(label: Text('編集')), // ← 編集ボタン用の列を追加
+                                DataColumn(label: Text('No.')),
+                                ...columns
+                                    .map((col) => DataColumn(label: Text(col))),
+                                DataColumn(label: Text('日時')),
+                              ],
+                              rows: List.generate(entries.length, (index) {
+                                final entry = entries[index];
+                                return DataRow(
+                                  cells: [
+                                    // 削除ボタンセル（左端）
+                                    DataCell(
+                                      IconButton(
+                                        icon: Icon(Icons.delete,
+                                            color: Colors.red),
+                                        onPressed: () async {
+                                          final confirm =
+                                              await showDialog<bool>(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title: Text('削除確認'),
+                                              content: Text('このデータを削除しますか？'),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                          context, false),
+                                                  child: Text('キャンセル'),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                          context, true),
+                                                  child: Text('削除'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                          if (confirm == true) {
+                                            await DatabaseHelper.instance
+                                                .deleteEntry(entry.id!);
+                                            setState(() {
+                                              _loadEntries();
+                                            });
+                                          }
+                                        },
                                       ),
                                     ),
-                                  );
-                                  setState(() {
-                                    _loadEntries();
-                                  });
-                                },
-                              ),
-                            ),
-                            DataCell(Text('${index + 1}')),
-                            ...columns.map((col) => DataCell(Container(
-                                  decoration: BoxDecoration(
-                                    border: Border(
-                                      right: BorderSide(
-                                          color: Colors.grey), // 右側に縦線
-                                      bottom: BorderSide(
-                                          color: Colors.grey), // 下側に横線（必要なら）
+                                    // 編集ボタンセル（削除の右側）
+                                    DataCell(
+                                      IconButton(
+                                        icon: Icon(Icons.edit,
+                                            color: Colors.blue),
+                                        onPressed: () async {
+                                          final fields = await DatabaseHelper
+                                              .instance
+                                              .getFields(widget.fieldSetId);
+                                          final fieldNames = fields
+                                              .map((f) => f.name)
+                                              .toList();
+                                          await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  CsvEntryScreen(
+                                                setName: widget.setName,
+                                                fieldSetId: widget.fieldSetId,
+                                                fields: fieldNames,
+                                                entry: entry,
+                                              ),
+                                            ),
+                                          );
+                                          setState(() {
+                                            _loadEntries();
+                                          });
+                                        },
+                                      ),
                                     ),
-                                  ),
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  child:
-                                      Text(entry.values[col]?.toString() ?? ''),
-                                ))),
-                            DataCell(Text(dateFormat.format(entry.createdAt))),
-                            // 他のセルがあればここに追加
-                          ],
-                        );
-                      }),
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
+                                    DataCell(Text('${index + 1}')),
+                                    // ↓ ここを修正：ContainerやBoxDecorationを外してTextだけに戻す
+                                    ...columns.map((col) => DataCell(
+                                          Text(entry.values[col]?.toString() ??
+                                              ''),
+                                        )),
+                                    DataCell(Text(
+                                        dateFormat.format(entry.createdAt))),
+                                  ],
+                                );
+                              }),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
       ),
       // 画面下部中央にやや小さめの丸いボタンを配置
       floatingActionButton: SizedBox(
@@ -321,19 +332,12 @@ class _CsvListScreenState extends State<CsvListScreen> {
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      bottomNavigationBar: _isAdLoaded
-          ? SizedBox(
-              height: _bannerAd.size.height.toDouble(),
-              child: AdWidget(ad: _bannerAd),
-            )
-          : null,
     );
   }
 
   @override
   void dispose() {
     _bannerAd.dispose();
-    _horizontalScrollController.dispose(); // 追加
     super.dispose();
   }
 

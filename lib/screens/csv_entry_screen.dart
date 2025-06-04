@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../db/database_helper.dart'; // ファイル冒頭でインポート
 import '../models/entry.dart'; // 例: Entryクラスのパス
+import '../models/field.dart'; // 追加: Fieldクラスのパス
 
 class CsvEntryScreen extends StatefulWidget {
   final String setName;
@@ -84,38 +85,75 @@ class _CsvEntryScreenState extends State<CsvEntryScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView.builder(
-                itemCount: widget.fields.length,
-                itemBuilder: (context, index) {
-                  final field = widget.fields[index];
-                  return Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _controllers[field],
-                          decoration: InputDecoration(labelText: field),
+        child: FutureBuilder<List<Field>>(
+          future: DatabaseHelper.instance.getFields(widget.fieldSetId),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('エラーが発生しました'));
+            }
+
+            final fields = snapshot.data!;
+            return Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: fields.length,
+                    itemBuilder: (context, index) {
+                      final field = fields[index];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: _controllers[field.name],
+                                decoration:
+                                    InputDecoration(labelText: field.name),
+                                keyboardType: field.type == 'number'
+                                    ? TextInputType.number
+                                    : TextInputType.text,
+                                readOnly: field.type == 'date',
+                                onTap: field.type == 'date'
+                                    ? () async {
+                                        DateTime? picked = await showDatePicker(
+                                          context: context,
+                                          initialDate: DateTime.now(),
+                                          firstDate: DateTime(2000),
+                                          lastDate: DateTime(2100),
+                                        );
+                                        if (picked != null) {
+                                          _controllers[field.name]?.text =
+                                              picked
+                                                  .toIso8601String()
+                                                  .split('T')
+                                                  .first;
+                                        }
+                                      }
+                                    : null,
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.delete, color: Colors.red),
+                              tooltip: 'この項目の入力をクリア',
+                              onPressed: () {
+                                setState(() {
+                                  _controllers[field.name]?.clear();
+                                });
+                              },
+                            ),
+                          ],
                         ),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.delete, color: Colors.red),
-                        tooltip: 'この項目の入力をクリア',
-                        onPressed: () {
-                          setState(() {
-                            _controllers[field]?.clear(); // ★値をクリアするだけ
-                          });
-                        },
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(onPressed: _saveEntry, child: Text('保存')),
-          ],
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(onPressed: _saveEntry, child: Text('保存')),
+              ],
+            );
+          },
         ),
       ),
       bottomNavigationBar: _isAdLoaded
