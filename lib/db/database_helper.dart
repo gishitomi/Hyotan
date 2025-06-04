@@ -186,7 +186,7 @@ class DatabaseHelper {
         values[newName] = values.remove(oldName);
         await db.update(
           'entries',
-          {'values': jsonEncode(values)},
+          {'entry_values': jsonEncode(values)},
           where: 'id = ?',
           whereArgs: [entry['id']],
         );

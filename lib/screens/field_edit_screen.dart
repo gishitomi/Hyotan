@@ -8,11 +8,16 @@ import '../models/field_set.dart'; // 追加
 class FieldEditScreen extends StatefulWidget {
   final String setName;
   final int? fieldSetId;
-  final List<String> fields; // 項目名リスト
+  final List<String> fields;
+  final List<String> types; // 追加
 
-  const FieldEditScreen(
-      {Key? key, required this.setName, this.fieldSetId, required this.fields})
-      : super(key: key);
+  const FieldEditScreen({
+    Key? key,
+    required this.setName,
+    this.fieldSetId,
+    required this.fields,
+    required this.types, // 追加
+  }) : super(key: key);
 
   @override
   State<FieldEditScreen> createState() => _FieldEditScreenState();
@@ -28,7 +33,7 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
   void initState() {
     super.initState();
     _fields = List.from(widget.fields);
-    _types = List.filled(_fields.length, 'text'); // デフォルトは全てテキスト
+    _types = List.from(widget.types); // ここを修正
     _bannerAd = BannerAd(
       adUnitId: 'ca-app-pub-9487888965458679/8474773818',
       size: AdSize.banner,
@@ -278,3 +283,16 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
     );
   }
 }
+
+// 画面遷移の例
+Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (context) => FieldEditScreen(
+      setName: ...,
+      fieldSetId: ...,
+      fields: fields,
+      types: types, // 追加
+    ),
+  ),
+);

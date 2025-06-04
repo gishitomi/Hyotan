@@ -256,6 +256,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                       .getFields(fs.id!);
                                   final fieldNames =
                                       fields.map((f) => f.name).toList();
+                                  final types = await DatabaseHelper.instance
+                                      .getFieldTypes(fs.id!); // 追加
                                   await Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -264,6 +266,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         fieldSetId:
                                             fs.id!, // ← nullでないことを保証してint型に変換
                                         fields: fieldNames,
+                                        types: types, // 追加
                                       ),
                                     ),
                                   );
