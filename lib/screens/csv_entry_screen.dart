@@ -64,13 +64,24 @@ class _CsvEntryScreenState extends State<CsvEntryScreen> {
     for (var field in widget.fields) {
       values[field] = _controllers[field]?.text ?? '';
     }
-    // Entryインスタンスを生成して保存
-    final entry = Entry(
-      fieldSetId: widget.fieldSetId,
-      values: values,
-      createdAt: DateTime.now(),
-    );
-    await DatabaseHelper.instance.insertEntry(entry);
+
+    if (widget.entry != null) {
+      // 編集の場合はupdate
+      final updatedEntry = widget.entry!.copyWith(
+        values: values,
+        createdAt: DateTime.now(), // 必要に応じて元のcreatedAtを維持
+      );
+      await DatabaseHelper.instance.updateEntry(updatedEntry);
+    } else {
+      // 新規作成の場合はinsert
+      final entry = Entry(
+        fieldSetId: widget.fieldSetId,
+        values: values,
+        createdAt: DateTime.now(),
+      );
+      await DatabaseHelper.instance.insertEntry(entry);
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('保存しました')),
     );

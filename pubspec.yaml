@@ -21,6 +21,7 @@ dependencies:
   google_mobile_ads: ^5.0.0
   flutter_localizations:
     sdk: flutter
+  horizontal_data_table: ^4.2.1
 
 dev_dependencies:
   flutter_test:

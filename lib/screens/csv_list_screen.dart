@@ -10,6 +10,7 @@ import 'package:intl/intl.dart'; // 追加
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:horizontal_data_table/horizontal_data_table.dart';
 
 class CsvListScreen extends StatefulWidget {
   final String setName;
@@ -109,6 +110,13 @@ class _CsvListScreenState extends State<CsvListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Hyo-tan（ひょうたん）'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.share),
+            tooltip: 'CSV出力',
+            onPressed: () => _exportCsv(context),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -135,6 +143,12 @@ class _CsvListScreenState extends State<CsvListScreen> {
                     return Center(child: Text('データがありません'));
                   }
                   var entries = snapshot.data!;
+
+                  // データ取得後のentriesの並び順を調整
+
+                  // 追加: ID（またはcreatedAt）昇順でソート（新しいデータが一番下になる）
+                  entries.sort((a, b) =>
+                      a.id!.compareTo(b.id!)); // idがnullの場合はcreatedAtで
 
                   return FutureBuilder<List<Field>>(
                     future: _fieldsFuture,
@@ -166,126 +180,116 @@ class _CsvListScreenState extends State<CsvListScreen> {
                         }
                       }
 
-                      return Scrollbar(
-                        thumbVisibility: true,
-                        controller: _horizontalScrollController, // 追加
-                        child: GestureDetector(
-                          behavior:
-                              HitTestBehavior.translucent, // ← これで一覧外のスワイプも検知
-                          onHorizontalDragUpdate: (details) {
-                            _horizontalScrollController.jumpTo(
-                              _horizontalScrollController.offset -
-                                  details.delta.dx,
-                            );
-                          },
-                          child: SingleChildScrollView(
-                            controller: _horizontalScrollController, // 追加
-                            scrollDirection: Axis.horizontal,
-                            child: DataTable(
-                              sortColumnIndex: _sortColumn == null
-                                  ? null
-                                  : (() {
-                                      if (_sortColumn == 'No.') return 0;
-                                      if (_sortColumn == '日時')
-                                        return columns.length + 1;
-                                      final idx = columns.indexOf(_sortColumn!);
-                                      return idx == -1 ? null : idx + 1;
-                                    })(),
-                              sortAscending: _sortAscending,
-                              columns: [
-                                DataColumn(label: Text('削除')),
-                                DataColumn(label: Text('編集')), // ← 編集ボタン用の列を追加
-                                DataColumn(label: Text('No.')),
-                                ...columns
-                                    .map((col) => DataColumn(label: Text(col))),
-                                DataColumn(label: Text('日時')),
-                              ],
-                              rows: List.generate(entries.length, (index) {
-                                final entry = entries[index];
-                                return DataRow(
-                                  cells: [
-                                    // 削除ボタンセル（左端）
-                                    DataCell(
-                                      IconButton(
-                                        icon: Icon(Icons.delete,
-                                            color: Colors.red),
-                                        onPressed: () async {
-                                          final confirm =
-                                              await showDialog<bool>(
-                                            context: context,
-                                            builder: (context) => AlertDialog(
-                                              title: Text('削除確認'),
-                                              content: Text('このデータを削除しますか？'),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () =>
-                                                      Navigator.pop(
-                                                          context, false),
-                                                  child: Text('キャンセル'),
-                                                ),
-                                                TextButton(
-                                                  onPressed: () =>
-                                                      Navigator.pop(
-                                                          context, true),
-                                                  child: Text('削除'),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                          if (confirm == true) {
-                                            await DatabaseHelper.instance
-                                                .deleteEntry(entry.id!);
-                                            setState(() {
-                                              _loadEntries();
-                                            });
-                                          }
-                                        },
+                      return HorizontalDataTable(
+                        leftHandSideColumnWidth: 60,
+                        rightHandSideColumnWidth:
+                            120.0 * columns.length + 180, // 調整
+                        isFixedHeader: true,
+                        headerWidgets: [
+                          _buildHeaderWidget('No.', 60),
+                          ...columns
+                              .map((col) => _buildHeaderWidget(col, 120))
+                              .toList(),
+                          _buildHeaderWidget('日時', 180),
+                          _buildHeaderWidget('編集', 60),
+                          _buildHeaderWidget('削除', 60),
+                        ],
+                        leftSideItemBuilder: (context, index) {
+                          return Container(
+                            width: 60,
+                            alignment: Alignment.center,
+                            child: Text('${index + 1}'),
+                          );
+                        },
+                        rightSideItemBuilder: (context, index) {
+                          final entry = entries[index];
+                          return Row(
+                            children: [
+                              ...columns.map((col) => Container(
+                                    width: 120,
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                        entry.values[col]?.toString() ?? ''),
+                                  )),
+                              Container(
+                                width: 180,
+                                alignment: Alignment.center,
+                                child: Text(dateFormat.format(entry.createdAt)),
+                              ),
+                              Container(
+                                width: 60,
+                                alignment: Alignment.center,
+                                child: IconButton(
+                                  icon: Icon(Icons.edit,
+                                      color: Colors.blue, size: 20),
+                                  padding: EdgeInsets.zero,
+                                  onPressed: () async {
+                                    final fields = await DatabaseHelper.instance
+                                        .getFields(widget.fieldSetId);
+                                    final fieldNames =
+                                        fields.map((f) => f.name).toList();
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => CsvEntryScreen(
+                                          setName: widget.setName,
+                                          fieldSetId: widget.fieldSetId,
+                                          fields: fieldNames,
+                                          entry: entry,
+                                        ),
                                       ),
-                                    ),
-                                    // 編集ボタンセル（削除の右側）
-                                    DataCell(
-                                      IconButton(
-                                        icon: Icon(Icons.edit,
-                                            color: Colors.blue),
-                                        onPressed: () async {
-                                          final fields = await DatabaseHelper
-                                              .instance
-                                              .getFields(widget.fieldSetId);
-                                          final fieldNames = fields
-                                              .map((f) => f.name)
-                                              .toList();
-                                          await Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  CsvEntryScreen(
-                                                setName: widget.setName,
-                                                fieldSetId: widget.fieldSetId,
-                                                fields: fieldNames,
-                                                entry: entry,
-                                              ),
-                                            ),
-                                          );
-                                          setState(() {
-                                            _loadEntries();
-                                          });
-                                        },
+                                    );
+                                    setState(() {
+                                      _loadEntries();
+                                    });
+                                  },
+                                ),
+                              ),
+                              Container(
+                                width: 60,
+                                alignment: Alignment.center,
+                                child: IconButton(
+                                  icon: Icon(Icons.delete,
+                                      color: Colors.red, size: 20),
+                                  padding: EdgeInsets.zero,
+                                  onPressed: () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: Text('削除確認'),
+                                        content: Text('このデータを削除しますか？'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context, false),
+                                            child: Text('キャンセル'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context, true),
+                                            child: Text('削除'),
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                    DataCell(Text('${index + 1}')),
-                                    // ↓ ここを修正：ContainerやBoxDecorationを外してTextだけに戻す
-                                    ...columns.map((col) => DataCell(
-                                          Text(entry.values[col]?.toString() ??
-                                              ''),
-                                        )),
-                                    DataCell(Text(
-                                        dateFormat.format(entry.createdAt))),
-                                  ],
-                                );
-                              }),
-                            ),
-                          ),
-                        ),
+                                    );
+                                    if (confirm == true) {
+                                      await DatabaseHelper.instance
+                                          .deleteEntry(entry.id!);
+                                      setState(() {
+                                        _loadEntries();
+                                      });
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                        itemCount: entries.length,
+                        rowSeparatorWidget:
+                            Divider(height: 1, color: Colors.grey),
+                        leftHandSideColBackgroundColor: Colors.white,
+                        rightHandSideColBackgroundColor: Colors.white,
                       );
                     },
                   );
@@ -348,5 +352,16 @@ class _CsvListScreenState extends State<CsvListScreen> {
     setState(() {
       _loadEntries();
     });
+  }
+
+  // ヘッダー用ウィジェット
+  Widget _buildHeaderWidget(String label, double width) {
+    return Container(
+      width: width,
+      height: 56,
+      alignment: Alignment.center,
+      color: Colors.blue[50],
+      child: Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
+    );
   }
 }

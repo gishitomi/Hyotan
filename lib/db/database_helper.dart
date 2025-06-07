@@ -225,4 +225,18 @@ class DatabaseHelper {
     );
     return fields.map((field) => field['type'] as String).toList();
   }
+
+  Future<void> updateEntry(Entry entry) async {
+    final db = await database;
+    await db.update(
+      'entries',
+      {
+        'fieldSetId': entry.fieldSetId,
+        'entry_values': jsonEncode(entry.values),
+        'createdAt': entry.createdAt.toIso8601String(),
+      },
+      where: 'id = ?',
+      whereArgs: [entry.id],
+    );
+  }
 }

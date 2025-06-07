@@ -30,4 +30,18 @@ class Entry {
       'createdAt': createdAt.toIso8601String(),
     };
   }
+
+  Entry copyWith({
+    int? id,
+    int? fieldSetId,
+    Map<String, String>? values,
+    DateTime? createdAt,
+  }) {
+    return Entry(
+      id: id ?? this.id,
+      fieldSetId: fieldSetId ?? this.fieldSetId,
+      values: values ?? this.values,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }
