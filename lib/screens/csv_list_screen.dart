@@ -188,11 +188,33 @@ class _CsvListScreenState extends State<CsvListScreen> {
                             60, // ← 180(日時) + 60(編集) + 60(削除)を追加
                         isFixedHeader: true,
                         headerWidgets: [
-                          _buildHeaderWidget('No.', 60),
+                          _buildHeaderWidget('No.', 60, onTap: () {
+                            setState(() {
+                              _sortColumn = 'No.';
+                              _sortAscending = !_sortAscending;
+                            });
+                          },
+                              isSorted: _sortColumn == 'No.',
+                              ascending: _sortAscending),
                           ...columns
-                              .map((col) => _buildHeaderWidget(col, 120))
+                              .map((col) => _buildHeaderWidget(col, 120,
+                                      onTap: () {
+                                    setState(() {
+                                      _sortColumn = col;
+                                      _sortAscending = !_sortAscending;
+                                    });
+                                  },
+                                      isSorted: _sortColumn == col,
+                                      ascending: _sortAscending))
                               .toList(),
-                          _buildHeaderWidget('日時', 180),
+                          _buildHeaderWidget('日時', 180, onTap: () {
+                            setState(() {
+                              _sortColumn = '日時';
+                              _sortAscending = !_sortAscending;
+                            });
+                          },
+                              isSorted: _sortColumn == '日時',
+                              ascending: _sortAscending),
                           _buildHeaderWidget('編集', 60),
                           _buildHeaderWidget('削除', 60),
                         ],
@@ -363,13 +385,33 @@ class _CsvListScreenState extends State<CsvListScreen> {
   }
 
   // ヘッダー用ウィジェット
-  Widget _buildHeaderWidget(String label, double width) {
-    return Container(
-      width: width,
-      height: 56,
-      alignment: Alignment.center,
-      color: Colors.blue[50],
-      child: Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
+  Widget _buildHeaderWidget(
+    String label,
+    double width, {
+    VoidCallback? onTap,
+    bool isSorted = false,
+    bool ascending = true,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        width: width,
+        height: 56,
+        alignment: Alignment.center,
+        color: Colors.blue[50],
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
+            if (isSorted)
+              Icon(
+                ascending ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                size: 20,
+                color: Colors.blue,
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
