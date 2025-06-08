@@ -47,6 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true, // ← 追加
         title: Text('Hyo-tan（ひょうたん）'),
       ),
       body: Column(

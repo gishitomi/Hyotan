@@ -215,8 +215,10 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
           title: Text('Hyo-tan（ひょうたん）'),
           leading: IconButton(
             icon: Icon(Icons.arrow_back),
-            onPressed: () => Navigator.pop(context),
             tooltip: '戻る',
+            onPressed: () {
+              _saveFields(); // awaitは不要（_saveFields自体が非同期でNavigator.popするのでOK）
+            },
           ),
         ),
         body: Column(
@@ -276,14 +278,6 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
                       icon: Icon(Icons.add),
                       label: Text('項目追加'),
                       onPressed: _addField,
-                    ),
-                  ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      icon: Icon(Icons.save),
-                      label: Text('保存'),
-                      onPressed: _saveFields,
                     ),
                   ),
                 ],

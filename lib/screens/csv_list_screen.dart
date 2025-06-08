@@ -110,8 +110,17 @@ class _CsvListScreenState extends State<CsvListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Hyo-tan（ひょうたん）'),
+        title: Text(widget.setName), // ← ここをCSVファイル名（セット名）に
         actions: [
+          Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.0),
+              child: Text(
+                'CSV出力',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
           IconButton(
             icon: Icon(Icons.share),
             tooltip: 'CSV出力',
@@ -121,7 +130,7 @@ class _CsvListScreenState extends State<CsvListScreen> {
       ),
       body: Column(
         children: [
-          // 上部バナー広告
+          // 上側バナー広告
           if (_isAdLoaded)
             SizedBox(
               height: _bannerAd.size.height.toDouble(),
