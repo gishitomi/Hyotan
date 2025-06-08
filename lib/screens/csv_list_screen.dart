@@ -88,13 +88,14 @@ class _CsvListScreenState extends State<CsvListScreen> {
     final csvConverter = ListToCsvConverter(eol: '\n');
     final csvString = csvConverter.convert(csvData);
 
-    // 一時ディレクトリにCSVファイルを書き込み
+    // セット名をファイル名に利用（日本語や記号を安全なファイル名に変換）
+    final safeSetName = widget.setName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
     final directory = await getTemporaryDirectory();
-    final path = '${directory.path}/data.csv';
+    final path = '${directory.path}/$safeSetName.csv';
     final file = File(path);
     await file.writeAsString(csvString);
 
-    // 共有ダイアログ表示（メールやLINEなど）
+    // 共有ダイアログ表示
     await Share.shareXFiles(
       [XFile(path)],
       text: 'CSVデータを送信します',
@@ -180,56 +181,71 @@ class _CsvListScreenState extends State<CsvListScreen> {
                         }
                       }
 
+                      // --- HorizontalDataTableの設定を「No列の固定なし」に修正 ---
+
                       return HorizontalDataTable(
-                        leftHandSideColumnWidth: 60,
-                        rightHandSideColumnWidth: 120.0 * columns.length +
-                            180 +
-                            60 +
-                            60, // ← 180(日時) + 60(編集) + 60(削除)を追加
+                        leftHandSideColumnWidth: 0, // ← 左端固定なし
+                        rightHandSideColumnWidth:
+                            120.0 * columns.length + 180 + 60 + 60,
                         isFixedHeader: true,
                         headerWidgets: [
-                          _buildHeaderWidget('No.', 60, onTap: () {
-                            setState(() {
-                              _sortColumn = 'No.';
-                              _sortAscending = !_sortAscending;
-                            });
-                          },
-                              isSorted: _sortColumn == 'No.',
-                              ascending: _sortAscending),
-                          ...columns
-                              .map((col) => _buildHeaderWidget(col, 120,
-                                      onTap: () {
-                                    setState(() {
-                                      _sortColumn = col;
+                          _buildHeaderWidget(
+                            'No.',
+                            60,
+                            onTap: () {
+                              setState(() {
+                                if (_sortColumn == 'No.') {
+                                  _sortAscending = !_sortAscending;
+                                } else {
+                                  _sortColumn = 'No.';
+                                  _sortAscending = true;
+                                }
+                              });
+                            },
+                            isSorted: _sortColumn == 'No.',
+                            ascending: _sortAscending,
+                          ),
+                          ...columns.map((col) => _buildHeaderWidget(
+                                col,
+                                120,
+                                onTap: () {
+                                  setState(() {
+                                    if (_sortColumn == col) {
                                       _sortAscending = !_sortAscending;
-                                    });
-                                  },
-                                      isSorted: _sortColumn == col,
-                                      ascending: _sortAscending))
-                              .toList(),
-                          _buildHeaderWidget('日時', 180, onTap: () {
-                            setState(() {
-                              _sortColumn = '日時';
-                              _sortAscending = !_sortAscending;
-                            });
-                          },
-                              isSorted: _sortColumn == '日時',
-                              ascending: _sortAscending),
+                                    } else {
+                                      _sortColumn = col;
+                                      _sortAscending = true;
+                                    }
+                                  });
+                                },
+                                isSorted: _sortColumn == col,
+                                ascending: _sortAscending,
+                              )),
+                          _buildHeaderWidget(
+                            '日時',
+                            180,
+                            onTap: () {
+                              setState(() {
+                                if (_sortColumn == '日時') {
+                                  _sortAscending = !_sortAscending;
+                                } else {
+                                  _sortColumn = '日時';
+                                  _sortAscending = true;
+                                }
+                              });
+                            },
+                            isSorted: _sortColumn == '日時',
+                            ascending: _sortAscending,
+                          ),
                           _buildHeaderWidget('編集', 60),
                           _buildHeaderWidget('削除', 60),
                         ],
-                        leftSideItemBuilder: (context, index) {
-                          return Container(
-                            width: 60,
-                            height: 56, // ← 高さを明示
-                            alignment: Alignment.center,
-                            child: Text('${index + 1}'),
-                          );
-                        },
+                        leftSideItemBuilder: (context, index) =>
+                            SizedBox.shrink(), // ← 左端列なし
                         rightSideItemBuilder: (context, index) {
                           final entry = entries[index];
                           return Container(
-                            height: 56, // ← Row全体に高さを指定
+                            height: 56,
                             child: Row(
                               children: [
                                 ...columns.map((col) => Container(

@@ -213,6 +213,11 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
       home: Scaffold(
         appBar: AppBar(
           title: Text('Hyo-tan（ひょうたん）'),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pop(context),
+            tooltip: '戻る',
+          ),
         ),
         body: Column(
           children: [

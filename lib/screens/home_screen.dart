@@ -57,16 +57,16 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             child: Row(
               children: [
-                // セット名（ListTileのtitleと同じ幅でExpanded）
+                // CSVファイル名（旧: セット名）
                 Expanded(
-                  child: Text('セット名',
+                  child: Text('CSVファイル名',
                       style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
                 // セット名編集ボタンの位置
                 SizedBox(
                   width: 48, // アイコンボタンの幅に合わせて調整
                   child: Center(
-                    child: Text('セット名編集',
+                    child: Text('CSV名編集',
                         style: TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 13)),
                   ),
@@ -108,10 +108,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           final setName = await showDialog<String>(
                             context: context,
                             builder: (context) => AlertDialog(
-                              title: Text('新しいセット名を入力'),
+                              title: Text('新しいCSVファイル名を入力'),
                               content: TextField(
                                 controller: controller,
-                                decoration: InputDecoration(labelText: 'セット名'),
+                                decoration: InputDecoration(labelText: 'CSVファイル名'),
                                 autofocus: true,
                               ),
                               actions: [
@@ -196,25 +196,25 @@ class _HomeScreenState extends State<HomeScreen> {
                           });
                         },
                         child: ListTile(
-                          title: Text(fs.name),
+                          title: Text(fs.name), // ←ここはDBのnameをそのまま使う（CSVファイル名として）
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               // セット名編集ボタン
                               IconButton(
                                 icon: Icon(Icons.edit, color: Colors.blue),
-                                tooltip: 'セット名編集',
+                                tooltip: 'CSV名編集',
                                 onPressed: () async {
                                   final controller =
                                       TextEditingController(text: fs.name);
                                   final newName = await showDialog<String>(
                                     context: context,
                                     builder: (context) => AlertDialog(
-                                      title: Text('セット名を編集'),
+                                      title: Text('CSVファイル名を編集'),
                                       content: TextField(
                                         controller: controller,
                                         decoration:
-                                            InputDecoration(labelText: 'セット名'),
+                                            InputDecoration(labelText: 'CSVファイル名'),
                                         autofocus: true,
                                       ),
                                       actions: [
@@ -316,10 +316,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         final setName = await showDialog<String>(
                           context: context,
                           builder: (context) => AlertDialog(
-                            title: Text('新しいセット名を入力'),
+                            title: Text('新しいCSVファイル名を入力'),
                             content: TextField(
                               controller: controller,
-                              decoration: InputDecoration(labelText: 'セット名'),
+                              decoration: InputDecoration(labelText: 'CSVファイル名'),
                               autofocus: true,
                             ),
                             actions: [
