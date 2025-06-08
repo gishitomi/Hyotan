@@ -182,8 +182,10 @@ class _CsvListScreenState extends State<CsvListScreen> {
 
                       return HorizontalDataTable(
                         leftHandSideColumnWidth: 60,
-                        rightHandSideColumnWidth:
-                            120.0 * columns.length + 180, // 調整
+                        rightHandSideColumnWidth: 120.0 * columns.length +
+                            180 +
+                            60 +
+                            60, // ← 180(日時) + 60(編集) + 60(削除)を追加
                         isFixedHeader: true,
                         headerWidgets: [
                           _buildHeaderWidget('No.', 60),
@@ -197,92 +199,98 @@ class _CsvListScreenState extends State<CsvListScreen> {
                         leftSideItemBuilder: (context, index) {
                           return Container(
                             width: 60,
+                            height: 56, // ← 高さを明示
                             alignment: Alignment.center,
                             child: Text('${index + 1}'),
                           );
                         },
                         rightSideItemBuilder: (context, index) {
                           final entry = entries[index];
-                          return Row(
-                            children: [
-                              ...columns.map((col) => Container(
-                                    width: 120,
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                        entry.values[col]?.toString() ?? ''),
-                                  )),
-                              Container(
-                                width: 180,
-                                alignment: Alignment.center,
-                                child: Text(dateFormat.format(entry.createdAt)),
-                              ),
-                              Container(
-                                width: 60,
-                                alignment: Alignment.center,
-                                child: IconButton(
-                                  icon: Icon(Icons.edit,
-                                      color: Colors.blue, size: 20),
-                                  padding: EdgeInsets.zero,
-                                  onPressed: () async {
-                                    final fields = await DatabaseHelper.instance
-                                        .getFields(widget.fieldSetId);
-                                    final fieldNames =
-                                        fields.map((f) => f.name).toList();
-                                    await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => CsvEntryScreen(
-                                          setName: widget.setName,
-                                          fieldSetId: widget.fieldSetId,
-                                          fields: fieldNames,
-                                          entry: entry,
-                                        ),
-                                      ),
-                                    );
-                                    setState(() {
-                                      _loadEntries();
-                                    });
-                                  },
+                          return Container(
+                            height: 56, // ← Row全体に高さを指定
+                            child: Row(
+                              children: [
+                                ...columns.map((col) => Container(
+                                      width: 120,
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                          entry.values[col]?.toString() ?? ''),
+                                    )),
+                                Container(
+                                  width: 180,
+                                  alignment: Alignment.center,
+                                  child:
+                                      Text(dateFormat.format(entry.createdAt)),
                                 ),
-                              ),
-                              Container(
-                                width: 60,
-                                alignment: Alignment.center,
-                                child: IconButton(
-                                  icon: Icon(Icons.delete,
-                                      color: Colors.red, size: 20),
-                                  padding: EdgeInsets.zero,
-                                  onPressed: () async {
-                                    final confirm = await showDialog<bool>(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        title: Text('削除確認'),
-                                        content: Text('このデータを削除しますか？'),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context, false),
-                                            child: Text('キャンセル'),
+                                Container(
+                                  width: 60,
+                                  alignment: Alignment.center,
+                                  child: IconButton(
+                                    icon: Icon(Icons.edit,
+                                        color: Colors.blue, size: 20),
+                                    padding: EdgeInsets.zero,
+                                    onPressed: () async {
+                                      final fields = await DatabaseHelper
+                                          .instance
+                                          .getFields(widget.fieldSetId);
+                                      final fieldNames =
+                                          fields.map((f) => f.name).toList();
+                                      await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => CsvEntryScreen(
+                                            setName: widget.setName,
+                                            fieldSetId: widget.fieldSetId,
+                                            fields: fieldNames,
+                                            entry: entry,
                                           ),
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context, true),
-                                            child: Text('削除'),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                    if (confirm == true) {
-                                      await DatabaseHelper.instance
-                                          .deleteEntry(entry.id!);
+                                        ),
+                                      );
                                       setState(() {
                                         _loadEntries();
                                       });
-                                    }
-                                  },
+                                    },
+                                  ),
                                 ),
-                              ),
-                            ],
+                                Container(
+                                  width: 60,
+                                  alignment: Alignment.center,
+                                  child: IconButton(
+                                    icon: Icon(Icons.delete,
+                                        color: Colors.red, size: 20),
+                                    padding: EdgeInsets.zero,
+                                    onPressed: () async {
+                                      final confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: Text('削除確認'),
+                                          content: Text('このデータを削除しますか？'),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, false),
+                                              child: Text('キャンセル'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, true),
+                                              child: Text('削除'),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                      if (confirm == true) {
+                                        await DatabaseHelper.instance
+                                            .deleteEntry(entry.id!);
+                                        setState(() {
+                                          _loadEntries();
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
                           );
                         },
                         itemCount: entries.length,
